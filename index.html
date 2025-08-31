@@ -2,201 +2,328 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registro de Presión Arterial</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>VitalTrack: Salud y Bienestar</title>
   
-  <!-- Manifest -->
   <link rel="manifest" href="manifest.json">
-
-  <!-- Colores de la app -->
-  <meta name="theme-color" content="#f5faff">
-
-  <!-- Configuración iOS -->
+  <meta name="theme-color" content="#ffffff">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Presión Arterial">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="VitalTrack">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
   <style>
+    :root {
+      --primary-color: #007bff;
+      --secondary-color: #28a745;
+      --background-color: #f4f7f9;
+      --card-background: #ffffff;
+      --text-color: #333;
+      --text-muted: #6c757d;
+      --border-color: #e9ecef;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f5faff;
-      color: #333;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--background-color);
+      color: var(--text-color);
     }
 
     .app {
       width: 100%;
-      max-width: 480px;
+      max-width: 500px;
       height: 100vh;
+      margin: auto;
       display: flex;
       flex-direction: column;
-      background: #fff;
+      background: var(--card-background);
+      box-shadow: var(--shadow);
     }
 
     header {
-      padding: 15px;
+      padding: 16px 20px;
       text-align: center;
-      font-size: 1.4em;
-      font-weight: bold;
-      background: #e6f0fa;
-      border-bottom: 2px solid #d0e0f0;
+      font-size: 1.5em;
+      font-weight: 600;
+      background: var(--card-background);
+      border-bottom: 1px solid var(--border-color);
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
 
     .screen {
       flex: 1;
       display: none;
       flex-direction: column;
-      padding: 15px;
       overflow: hidden;
+      position: relative;
     }
     .screen.active {
       display: flex;
     }
-
-    /* Pantalla inicio */
-    .patient-list {
+    .screen-content {
+      padding: 20px;
       flex: 1;
       overflow-y: auto;
-      margin-top: 10px;
     }
-    .patient-card {
-      padding: 12px;
-      background: #f0f8ff;
-      margin: 8px 0;
-      border-radius: 8px;
+
+    /* --- Pantalla de Inicio --- */
+    #homeScreen .screen-content {
+        padding-bottom: 90px; /* Espacio para el FAB */
+    }
+    h3 {
+        margin-top: 0;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+    .patient-list .patient-card {
+      padding: 16px;
+      background: var(--card-background);
+      margin-bottom: 12px;
+      border-radius: 12px;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 1px solid var(--border-color);
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     .patient-card:hover {
-      background: #dceeff;
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+    .patient-card i {
+      color: var(--text-muted);
+      opacity: 0.5;
+    }
+    .add-patient-form {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
     }
 
-    /* Panel superior */
-    .last-reading {
-      display: flex;
-      justify-content: space-around;
-      background: #eef7ff;
-      border-radius: 10px;
-      padding: 20px 10px;
-      margin-bottom: 10px;
+    /* --- Pantalla del Paciente --- */
+    .dashboard {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        padding: 15px;
+        background: linear-gradient(135deg, var(--primary-color), #0056b3);
+        color: white;
     }
-    .last-reading div {
-      font-size: 2.4em;
-      font-weight: bold;
-      color: #004080;
+    .dashboard-metric {
+        text-align: center;
     }
-    .patient-name {
+    .dashboard-metric .label {
+        font-size: 0.8em;
+        opacity: 0.8;
+    }
+    .dashboard-metric .value {
+        font-size: 2em;
+        font-weight: 700;
+    }
+    .patient-name-header {
       text-align: center;
-      font-size: 0.85em;
-      color: #444;
-      margin-bottom: 15px;
-      word-break: break-word;
-    }
-
-    /* Inputs */
-    input {
-      width: 100%;
       padding: 10px;
-      margin: 6px 0;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 1em;
+      font-size: 1.2em;
+      font-weight: 600;
+      word-break: break-word;
+      background: var(--background-color);
     }
-    button {
-      width: 100%;
-      padding: 12px;
-      background: #0077cc;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 1em;
-      margin-top: 8px;
+    
+    .toggle-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
     }
-    button:hover {
-      background: #005fa3;
+    .toggle-buttons button {
+        background: var(--border-color);
+        color: var(--text-muted);
+        border: none;
+        padding: 10px 15px;
+        border-radius: 20px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+    .toggle-buttons button.active {
+        background: var(--primary-color);
+        color: white;
     }
 
-    /* Estado */
+    .form-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .input-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+        gap: 10px;
+    }
+    
     .status {
-      margin-top: 12px;
+      margin: 15px 0;
       font-weight: bold;
       text-align: center;
       font-size: 1.1em;
-    }
-
-    /* Sugerencias desplegable */
-    details {
-      margin-top: 10px;
-      background: #f0f8ff;
-      border-radius: 6px;
       padding: 10px;
+      border-radius: 8px;
     }
-    details summary {
-      font-weight: bold;
-      cursor: pointer;
-    }
+    .status.normal { background-color: #eaf7ed; color: #28a745; }
+    .status.baja { background-color: #fff0f0; color: #dc3545; }
+    .status.alta { background-color: #fff0f0; color: #dc3545; }
 
-    /* Historial */
     .history {
-      margin-top: 10px;
-      flex: 1;
-      overflow-y: auto;
+      margin-top: 20px;
     }
     .history-entry {
-      background: #f9f9f9;
-      padding: 8px;
-      margin-bottom: 6px;
-      border-radius: 6px;
-      font-size: 0.9em;
+      background: var(--background-color);
+      padding: 12px 15px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .history-entry .icon {
+        font-size: 1.5em;
+    }
+    .history-entry .icon-bp { color: var(--primary-color); }
+    .history-entry .icon-weight { color: var(--secondary-color); }
+
+    .history-entry .details .data { font-weight: 500; }
+    .history-entry .details .date { font-size: 0.8em; color: var(--text-muted); }
+
+    /* --- Elementos Generales --- */
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      font-size: 1em;
+      background: var(--background-color);
+    }
+    input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        background: white;
+    }
+
+    button {
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1em;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .btn-primary {
+      background: var(--primary-color);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #0056b3;
+    }
+    .btn-secondary {
+      background: var(--text-muted);
+      color: #fff;
+    }
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+    
+    .fab {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: white;
+        font-size: 1.8em;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 6px 15px rgba(0, 123, 255, 0.4);
+        border: none;
+        cursor: pointer;
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <header>Registro de Presión Arterial</header>
+    <header><i class="fa-solid fa-heart-pulse"></i> VitalTrack</header>
 
-    <!-- Pantalla inicio -->
     <div id="homeScreen" class="screen active">
-      <h3>Pacientes</h3>
-      <div class="patient-list" id="patientList"></div>
-      <input type="text" id="newPatientName" placeholder="Nombre del paciente">
-      <button onclick="addPatient()">Agregar Paciente</button>
+      <div class="screen-content">
+        <h3>Mis Pacientes</h3>
+        <div class="add-patient-form">
+            <input type="text" id="newPatientName" placeholder="Nuevo paciente..." style="flex-grow: 1;">
+            <button class="btn-primary" onclick="addPatient()" style="padding: 0 20px;"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <div class="patient-list" id="patientList" style="margin-top: 20px;"></div>
+      </div>
     </div>
 
-    <!-- Pantalla paciente -->
     <div id="patientScreen" class="screen">
-      <div class="last-reading" id="lastReading">
-        <div>--</div>
-        <div>--</div>
-        <div>--</div>
-      </div>
-      <div class="patient-name" id="patientName"></div>
+        <div class="dashboard">
+            <div class="dashboard-metric" id="lastPressure">
+                <div class="label"><i class="fa-solid fa-droplet"></i> PRESIÓN</div>
+                <div class="value">--/--</div>
+            </div>
+            <div class="dashboard-metric" id="lastWeight">
+                <div class="label"><i class="fa-solid fa-weight-scale"></i> PESO</div>
+                <div class="value">-- kg</div>
+            </div>
+        </div>
+        <div class="patient-name-header" id="patientNameHeader"></div>
+      
+        <div class="screen-content">
+            <div class="toggle-buttons">
+                <button id="btnToggleBP" class="active" onclick="showForm('bp')">Presión Arterial</button>
+                <button id="btnToggleWeight" onclick="showForm('weight')">Peso Corporal</button>
+            </div>
 
-      <input type="number" id="sys" placeholder="Sistólica (mmHg)">
-      <input type="number" id="dia" placeholder="Diastólica (mmHg)">
-      <input type="number" id="hr" placeholder="Pulso (lpm)">
-      <button onclick="addReading()">Registrar Toma</button>
+            <div id="pressureForm" class="form-container">
+                <div class="input-group">
+                    <input type="number" id="sys" placeholder="Sistólica">
+                    <input type="number" id="dia" placeholder="Diastólica">
+                    <input type="number" id="hr" placeholder="Pulso">
+                </div>
+                <div class="status" id="status" style="display:none;"></div>
+                <button class="btn-primary" onclick="addRecord()"><i class="fa-solid fa-plus"></i> Registrar Toma</button>
+            </div>
 
-      <div class="status" id="status"></div>
-      <details id="suggestionsBlock" style="display:none;">
-        <summary>Ver sugerencias</summary>
-        <div id="suggestions"></div>
-      </details>
-
-      <h4>Historial</h4>
-      <div class="history" id="history"></div>
-      <button onclick="backHome()">Regresar</button>
+            <div id="weightForm" class="form-container" style="display:none;">
+                <input type="number" id="weight" placeholder="Peso (kg)">
+                <button class="btn-primary" onclick="addRecord()"><i class="fa-solid fa-plus"></i> Registrar Peso</button>
+            </div>
+            
+            <h3 style="margin-top: 30px;">Historial de Registros</h3>
+            <div class="history" id="history"></div>
+        </div>
+        <button class="fab" onclick="backHome()"><i class="fa-solid fa-arrow-left"></i></button>
     </div>
   </div>
 
   <script>
-    // Registrar el Service Worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js')
@@ -205,11 +332,14 @@
       });
     }
 
-    let patients = JSON.parse(localStorage.getItem("patients")) || [];
+    let patients = JSON.parse(localStorage.getItem("vitaltrack_patients")) || [];
     let currentPatientIndex = null;
+    let currentForm = 'bp'; // 'bp' o 'weight'
+
+    // --- Funciones de guardado y renderizado ---
 
     function saveData() {
-      localStorage.setItem("patients", JSON.stringify(patients));
+      localStorage.setItem("vitaltrack_patients", JSON.stringify(patients));
     }
 
     function renderPatients() {
@@ -218,26 +348,31 @@
       patients.forEach((p, i) => {
         const div = document.createElement("div");
         div.className = "patient-card";
-        div.innerText = p.name;
+        div.innerHTML = `<span>${p.name}</span><i class="fa-solid fa-chevron-right"></i>`;
         div.onclick = () => openPatient(i);
         list.appendChild(div);
       });
     }
 
+    // --- Navegación y gestión de pacientes ---
+
     function addPatient() {
-      const name = document.getElementById("newPatientName").value.trim();
+      const nameInput = document.getElementById("newPatientName");
+      const name = nameInput.value.trim();
       if (!name) return;
-      patients.push({ name, readings: [] });
+      patients.push({ name, records: [] });
       saveData();
       renderPatients();
-      document.getElementById("newPatientName").value = "";
+      nameInput.value = "";
     }
 
     function openPatient(index) {
       currentPatientIndex = index;
       document.getElementById("homeScreen").classList.remove("active");
       document.getElementById("patientScreen").classList.add("active");
-      document.getElementById("patientName").innerText = patients[index].name;
+      document.getElementById("patientNameHeader").innerText = patients[index].name;
+      showForm('bp'); // Siempre mostrar el form de presión al abrir
+      updateDashboard();
       renderHistory();
     }
 
@@ -247,67 +382,115 @@
       currentPatientIndex = null;
     }
 
-    function addReading() {
-      const sys = parseInt(document.getElementById("sys").value);
-      const dia = parseInt(document.getElementById("dia").value);
-      const hr = parseInt(document.getElementById("hr").value);
-      if (!sys || !dia || !hr) return;
+    function showForm(formType) {
+        currentForm = formType;
+        document.getElementById('pressureForm').style.display = formType === 'bp' ? 'flex' : 'none';
+        document.getElementById('weightForm').style.display = formType === 'weight' ? 'flex' : 'none';
+        document.getElementById('btnToggleBP').classList.toggle('active', formType === 'bp');
+        document.getElementById('btnToggleWeight').classList.toggle('active', formType === 'weight');
+    }
 
-      const reading = { sys, dia, hr, date: new Date().toLocaleString() };
-      patients[currentPatientIndex].readings.unshift(reading);
-      saveData();
-      document.getElementById("sys").value = "";
-      document.getElementById("dia").value = "";
-      document.getElementById("hr").value = "";
-      renderHistory();
+    // --- Lógica de registros ---
+
+    function addRecord() {
+      const patient = patients[currentPatientIndex];
+      const date = new Date().toLocaleString('es-MX');
+      let newRecord = null;
+
+      if (currentForm === 'bp') {
+        const sys = parseInt(document.getElementById("sys").value);
+        const dia = parseInt(document.getElementById("dia").value);
+        const hr = parseInt(document.getElementById("hr").value);
+        if (!sys || !dia || !hr) return alert("Por favor, completa todos los campos de presión.");
+        
+        newRecord = { type: 'bp', sys, dia, hr, date };
+        document.getElementById("sys").value = "";
+        document.getElementById("dia").value = "";
+        document.getElementById("hr").value = "";
+      } else if (currentForm === 'weight') {
+        const weight = parseFloat(document.getElementById("weight").value);
+        if (!weight) return alert("Por favor, ingresa un valor de peso.");
+        
+        newRecord = { type: 'weight', value: weight, unit: 'kg', date };
+        document.getElementById("weight").value = "";
+      }
+      
+      if(newRecord) {
+        patient.records.unshift(newRecord);
+        saveData();
+        updateDashboard();
+        renderHistory();
+      }
     }
 
     function renderHistory() {
       const historyDiv = document.getElementById("history");
-      const readings = patients[currentPatientIndex].readings;
+      const records = patients[currentPatientIndex].records;
       historyDiv.innerHTML = "";
-      readings.forEach(r => {
-        const div = document.createElement("div");
-        div.className = "history-entry";
-        div.innerText = `${r.date} → ${r.sys}/${r.dia} mmHg, Pulso: ${r.hr}`;
-        historyDiv.appendChild(div);
-      });
-      renderLastReading();
-    }
-
-    function renderLastReading() {
-      const readings = patients[currentPatientIndex].readings;
-      const panel = document.getElementById("lastReading").children;
-      const statusDiv = document.getElementById("status");
-      const suggBlock = document.getElementById("suggestionsBlock");
-      const suggDiv = document.getElementById("suggestions");
-
-      if (readings.length === 0) {
-        panel[0].innerText = panel[1].innerText = panel[2].innerText = "--";
-        statusDiv.innerText = "";
-        suggBlock.style.display = "none";
+      if (records.length === 0) {
+        historyDiv.innerHTML = "<p style='text-align:center; color: var(--text-muted);'>No hay registros todavía.</p>";
         return;
       }
-
-      const last = readings[0];
-      panel[0].innerText = last.sys;
-      panel[1].innerText = last.dia;
-      panel[2].innerText = last.hr;
-
-      let status = "Normal";
-      let suggestions = "Mantén un estilo de vida saludable.";
-      if (last.sys < 90 || last.dia < 60) {
-        status = "Baja";
-        suggestions = "Aumenta la hidratación, evita cambios bruscos de posición y consulta a un médico si persiste.";
-      } else if (last.sys > 140 || last.dia > 90) {
-        status = "Alta";
-        suggestions = "Reduce sal, estrés y consulta a un médico si se repite.";
-      }
-      statusDiv.innerText = "Presión " + status;
-      suggDiv.innerText = suggestions;
-      suggBlock.style.display = "block";
+      records.forEach(r => {
+        const div = document.createElement("div");
+        div.className = "history-entry";
+        let content = '';
+        if (r.type === 'bp') {
+          content = `
+            <div class="icon icon-bp"><i class="fa-solid fa-heart-pulse"></i></div>
+            <div class="details">
+              <div class="data">${r.sys}/${r.dia} mmHg &nbsp;&nbsp;|&nbsp;&nbsp; ${r.hr} lpm</div>
+              <div class="date">${r.date}</div>
+            </div>`;
+        } else if (r.type === 'weight') {
+          content = `
+            <div class="icon icon-weight"><i class="fa-solid fa-weight-scale"></i></div>
+            <div class="details">
+              <div class="data">${r.value} ${r.unit}</div>
+              <div class="date">${r.date}</div>
+            </div>`;
+        }
+        div.innerHTML = content;
+        historyDiv.appendChild(div);
+      });
     }
 
+    function updateDashboard() {
+        const records = patients[currentPatientIndex].records;
+        const lastBP = records.find(r => r.type === 'bp');
+        const lastWeight = records.find(r => r.type === 'weight');
+        const statusDiv = document.getElementById("status");
+        
+        // Actualizar Presión
+        if (lastBP) {
+            document.querySelector("#lastPressure .value").innerText = `${lastBP.sys}/${lastBP.dia}`;
+            
+            let status = "Normal";
+            let statusClass = "normal";
+            if (lastBP.sys < 90 || lastBP.dia < 60) {
+                status = "Presión Baja";
+                statusClass = "baja";
+            } else if (lastBP.sys >= 140 || lastBP.dia >= 90) {
+                status = "Presión Alta";
+                statusClass = "alta";
+            }
+            statusDiv.innerText = status;
+            statusDiv.className = `status ${statusClass}`;
+            statusDiv.style.display = 'block';
+        } else {
+            document.querySelector("#lastPressure .value").innerText = "--/--";
+            statusDiv.style.display = 'none';
+        }
+
+        // Actualizar Peso
+        if(lastWeight) {
+            document.querySelector("#lastWeight .value").innerText = `${lastWeight.value} ${lastWeight.unit}`;
+        } else {
+            document.querySelector("#lastWeight .value").innerText = "-- kg";
+        }
+    }
+
+    // Inicialización
     renderPatients();
   </script>
 </body>
