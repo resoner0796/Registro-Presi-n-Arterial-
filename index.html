@@ -37,6 +37,8 @@
       --glucose-normal: #28a745;
       --glucose-low: #ffc107;
       --glucose-high: #dc3545;
+
+      --analysis-color: #8A2BE2; /* Nuevo color para análisis */
     }
     
     .dark-mode {
@@ -60,6 +62,8 @@
       --glucose-normal: #198754;
       --glucose-low: #ffc107;
       --glucose-high: #dc3545;
+
+      --analysis-color: #9370DB;
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -151,11 +155,14 @@
     .toggle-buttons button.active.bp { background: var(--primary-color); color: white; }
     .toggle-buttons button.active.weight { background: var(--secondary-color); color: white; }
     .toggle-buttons button.active.glucose { background: var(--glucose-color); color: white; }
+    .toggle-buttons button.active.analysis { background: var(--analysis-color); color: white; }
 
     .history-entry { background: var(--bg-color); padding: 12px; margin-bottom: 10px; border-radius: 8px; }
     .history-header { display: flex; align-items: center; gap: 15px; }
+    .icon { width: 30px; text-align: center; }
     .history-header .icon i { font-size: 1.5em; }
     .icon.bp { color: var(--primary-color); } .icon.weight { color: var(--secondary-color); } .icon.glucose { color: var(--glucose-color); }
+    .icon.analysis { color: var(--analysis-color); }
     .history-details .data { font-weight: 500; }
     .history-details .date { font-size: 0.8em; color: var(--text-muted-color); }
     .history-notes {
@@ -165,7 +172,7 @@
     .settings-group { margin-bottom: 25px; }
     
     /* Estilos nuevos para el indicador y sugerencias */
-    #bpIndicator, #glucoseIndicator {
+    #bpIndicator, #glucoseIndicator, #analysisInterpretation {
         display: none;
         padding: 10px 15px;
         border-radius: 8px;
@@ -178,6 +185,7 @@
     #bpIndicator.low, #glucoseIndicator.low { background-color: var(--bp-low); }
     #bpIndicator.high, #glucoseIndicator.high { background-color: var(--bp-high); }
     #bpIndicator.elevated, #glucoseIndicator.elevated { background-color: var(--bp-elevated); }
+    #analysisInterpretation { background: var(--analysis-color); text-align: left; }
     
     .suggestions-container { margin-top: 15px; }
     .suggestions-container button {
@@ -282,7 +290,7 @@
     .modal.active { display: flex; }
     .modal-content {
       background: var(--card-bg-color); padding: 20px; border-radius: 12px;
-      width: 90%; max-width: 400px;
+      width: 90%; max-width: 400px; max-height: 90%; overflow-y: auto;
     }
   </style>
 </head>
@@ -318,6 +326,7 @@
             <div class="nav-item active" onclick="switchPatientView('records')"><i class="fa-solid fa-clipboard-list"></i><div>Registros</div></div>
             <div class="nav-item" onclick="switchPatientView('charts')"><i class="fa-solid fa-chart-line"></i><div>Gráficas</div></div>
             <div class="nav-item" onclick="switchPatientView('meds')"><i class="fa-solid fa-pills"></i><div>Medicamentos</div></div>
+            <div class="nav-item" onclick="switchPatientView('analysis')"><i class="fa-solid fa-microscope"></i><div>Análisis</div></div>
             <div class="nav-item" onclick="switchPatientView('settings')"><i class="fa-solid fa-cog"></i><div>Ajustes</div></div>
         </div>
     </div>
@@ -358,6 +367,17 @@
         </div>
     </div>
   </div>
+
+  <div id="editAnalysisModal" class="modal">
+    <div class="modal-content">
+        <h3 id="editAnalysisModalTitle">Editar Análisis</h3>
+        <div id="editAnalysisModalBody"></div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn-secondary" onclick="closeModal('editAnalysisModal')">Cancelar</button>
+            <button class="btn-primary" onclick="saveAnalysisEdit()">Guardar</button>
+        </div>
+    </div>
+  </div>
   
   <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-firestore-compat.js"></script>
@@ -386,6 +406,7 @@
     let currentRecordEditIndex = null;
     let currentMedEditIndex = null;
     let currentTakenEdit = {};
+    let currentAnalysisEditIndex = null; // Nuevo índice para la edición de análisis
     let charts = {};
     
     // --- LÓGICA DEL TEMA (MODO OSCURO/CLARO) ---
@@ -432,7 +453,7 @@
         const name = nameInput.value.trim();
         if (!name) return;
         await db.collection("patients").add({
-            name: name, records: [], medications: [],
+            name: name, records: [], medications: [], analysis: [],
             weightGoal: null, reminders: { enabled: false, time: '08:00' }
         });
         nameInput.value = "";
@@ -485,6 +506,11 @@
                 contentArea.innerHTML = getMedsViewHTML(); 
                 renderMeds(); 
                 break;
+            case 'analysis':
+                contentArea.innerHTML = getAnalysisViewHTML();
+                showAnalysisForm('smac30');
+                renderAnalysisHistory();
+                break;
             case 'settings': 
                 contentArea.innerHTML = getSettingsViewHTML(); 
                 renderSettings(); 
@@ -514,6 +540,18 @@
                     <button class="btn-primary" onclick="addMed()"><i class="fa-solid fa-plus"></i> Añadir medicamento</button>
                 </div>
                 <div id="medsList"></div>`;
+    }
+    function getAnalysisViewHTML() {
+        return `<h3>Registrar Análisis</h3>
+            <div class="toggle-buttons" style="margin-bottom: 20px;">
+                <button id="btnToggleSMAC30" class="analysis" onclick="showAnalysisForm('smac30')">SMAC 30</button>
+                <button id="btnToggleBH" class="analysis" onclick="showAnalysisForm('biometria')">BH</button>
+                <button id="btnToggleEGO" class="analysis" onclick="showAnalysisForm('ego')">EGO</button>
+            </div>
+            <div id="analysisFormContainer"></div>
+            <h3 style="margin-top: 30px;">Historial de Análisis</h3>
+            <div id="analysisHistory"></div>
+        `;
     }
     function getSettingsViewHTML() {
         return `<h3>Ajustes del Paciente</h3>
@@ -583,7 +621,7 @@
 
         if (isNaN(sys) || isNaN(dia) || sys <= 0 || dia <= 0) {
             indicator.style.display = 'none';
-            suggestionsPanel.style.display = 'none';
+            if (suggestionsPanel) suggestionsPanel.style.display = 'none';
             return;
         }
 
@@ -595,7 +633,7 @@
         indicator.classList.add(category);
         indicator.textContent = `Presión: ${text}`;
         
-        suggestionsPanel.innerHTML = `<ul>${suggestions.map(s => `<li><i class="fa-solid fa-lightbulb"></i>${s}</li>`).join('')}</ul>`;
+        if (suggestionsPanel) suggestionsPanel.innerHTML = `<ul>${suggestions.map(s => `<li><i class="fa-solid fa-lightbulb"></i>${s}</li>`).join('')}</ul>`;
     }
 
     function checkGlucose() {
@@ -605,7 +643,7 @@
 
         if (isNaN(glucose) || glucose <= 0) {
             indicator.style.display = 'none';
-            suggestionsPanel.style.display = 'none';
+            if (suggestionsPanel) suggestionsPanel.style.display = 'none';
             return;
         }
 
@@ -617,7 +655,7 @@
         indicator.classList.add(category);
         indicator.textContent = `Glucosa: ${text}`;
         
-        suggestionsPanel.innerHTML = `<ul>${suggestions.map(s => `<li><i class="fa-solid fa-lightbulb"></i>${s}</li>`).join('')}</ul>`;
+        if (suggestionsPanel) suggestionsPanel.innerHTML = `<ul>${suggestions.map(s => `<li><i class="fa-solid fa-lightbulb"></i>${s}</li>`).join('')}</ul>`;
     }
 
     function toggleSuggestions(type) {
@@ -995,6 +1033,374 @@
         alert('Ajustes de recordatorio guardados.');
     }
 
+    // --- LÓGICA DE ANÁLISIS ---
+    const analysisTypes = {
+        smac30: {
+            title: 'SMAC 30',
+            fields: [
+                { name: 'Glucosa', unit: 'mg/dl', ref: '64 - 99', type: 'number' },
+                { name: 'Acido Urico', unit: 'mg/dl', ref: '3.1 - 7.8', type: 'number' },
+                { name: 'BUN', unit: 'mg/dl', ref: '5 - 26', type: 'number' },
+                { name: 'Creatinina Serica', unit: 'mg/dl', ref: '0.5 - 1.1', type: 'number' },
+                { name: 'BUN/Creatinina', unit: '', ref: '8 - 27', type: 'number' },
+                { name: 'Urea', unit: 'mg/dl', ref: '10.7 - 55.64', type: 'number' },
+                { name: 'Sodio', unit: 'mmol/L', ref: '134 - 149', type: 'number' },
+                { name: 'Potasio', unit: 'mmol/L', ref: '3.3 - 5.6', type: 'number' },
+                { name: 'Cloro', unit: 'mmol/L', ref: '89 - 110', type: 'number' },
+                { name: 'Calcio', unit: 'mg/dl', ref: '8.5 - 10.8', type: 'number' },
+                { name: 'Fosforo', unit: 'mg/dl', ref: '2.5 - 4.5', type: 'number' },
+                { name: 'Proteinas Totales', unit: 'g/dL', ref: '6.0 - 8.0', type: 'number' },
+                { name: 'Albumina', unit: 'g/dL', ref: '3.5 - 5.5', type: 'number' },
+                { name: 'Globulina', unit: 'g/dL', ref: '1.5 - 4.5', type: 'number' },
+                { name: 'Relación A/G', unit: 'g/dL', ref: '1.1 - 2.5', type: 'number' },
+                { name: 'Bilirrubina Total', unit: 'mg/dl', ref: '0.10 - 1.50', type: 'number' },
+                { name: 'Bilirrubina Directa', unit: 'mg/dl', ref: '0.01 - 0.5', type: 'number' },
+                { name: 'Bilirrubina Indirecta', unit: 'mg/dl', ref: '0.1 - 1.0', type: 'number' },
+                { name: 'Fosfatasa Alcalina', unit: 'U/L', ref: '35 - 180', type: 'number' },
+                { name: 'LDH', unit: 'U/L', ref: '100 - 250', type: 'number' },
+                { name: 'AST (TGO)', unit: 'U/L', ref: '0 - 40', type: 'number' },
+                { name: 'ALT (TGP)', unit: 'U/L', ref: '0 - 55', type: 'number' },
+                { name: 'GGT', unit: 'U/L', ref: '0 - 60', type: 'number' },
+                { name: 'Hierro Serico', unit: 'mcg/dl', ref: '35 - 155', type: 'number' },
+                { name: 'LIPIDOS', type: 'header' },
+                { name: 'Colesterol', unit: 'mg/dl', ref: '70 - 199', type: 'number' },
+                { name: 'Trigliceridos', unit: 'mg/dl', ref: '0 - 149', type: 'number' },
+                { name: 'HDL-Colesterol', unit: 'mg/dl', ref: '45.0 - 65.0', type: 'number' },
+                { name: 'LDL-Colesterol', unit: 'mg/dl', ref: '0.00 - 99.00', type: 'number' },
+                { name: 'T Col/HDL, Colesterol', unit: '', ref: '0.00 - 5.00', type: 'number' },
+                { name: 'VLDL-Col.', unit: 'mg/dl', ref: '0.00 - 29.80', type: 'number' }
+            ]
+        },
+        biometria: {
+            title: 'Biometría Hemática',
+            fields: [
+                { name: 'Eritrocitos', unit: 'x10⁶/µl', ref: '4.0 - 5.0', type: 'number' },
+                { name: 'Hematocrito', unit: '%', ref: '37 - 47', type: 'number' },
+                { name: 'Hemoglobina', unit: 'g/dL', ref: '12.0 - 16.0', type: 'number' },
+                { name: 'Leucocitos', unit: 'x10³/µl', ref: '5.0 - 10.0', type: 'number' },
+                { name: 'VCM', unit: 'fL', ref: '84.0 - 103.0', type: 'number' },
+                { name: 'HCM', unit: 'pg', ref: '27.0 - 34.0', type: 'number' },
+                { name: 'CMHC', unit: 'g/dL', ref: '30 - 36', type: 'number' },
+                { name: 'Plaquetas', unit: 'x10³/µl', ref: '150.0 - 400.0', type: 'number' },
+                { name: 'DIFERENCIAL', type: 'header' },
+                { name: 'Basofilos', unit: '%', ref: '0 - 1', type: 'number' },
+                { name: 'Eosinofilos', unit: '%', ref: '0 - 3', type: 'number' },
+                { name: 'Mielocitos', unit: '%', ref: '0', type: 'number' },
+                { name: 'Metamielocitos', unit: '%', ref: '0', type: 'number' },
+                { name: 'Bandas', unit: '%', ref: '0', type: 'number' },
+                { name: 'Segmentados', unit: '%', ref: '34 - 74', type: 'number' },
+                { name: 'Linfocitos', unit: '%', ref: '25 - 40', type: 'number' },
+                { name: 'Linfocitos Atipicos', unit: '%', ref: '0', type: 'number' },
+                { name: 'Monocitos', unit: '%', ref: '3 - 10', type: 'number' }
+            ]
+        },
+        ego: {
+            title: 'EGO (Examen General de Orina)',
+            fields: [
+                { name: 'ANALISIS FISICOQUIMICO', type: 'header' },
+                { name: 'Color', ref: 'Amarillo', type: 'text' },
+                { name: 'Apariencia', ref: 'Clara', type: 'text' },
+                { name: 'Densidad', unit: '', ref: '1.005 - 1.035', type: 'number' },
+                { name: 'pH', unit: '', ref: '5.0 - 7.0', type: 'number' },
+                { name: 'C. Cetonicos', ref: 'Negativo', type: 'text' },
+                { name: 'Nitritos', ref: 'Negativo', type: 'text' },
+                { name: 'Proteínas', ref: 'Negativo', type: 'text' },
+                { name: 'Bilirrubina', ref: 'Negativo', type: 'text' },
+                { name: 'Urobilinógeno', unit: 'mg / dL', ref: '0.2 - 1.0', type: 'text' },
+                { name: 'Glucosa', ref: 'Negativo', type: 'text' },
+                { name: 'Sangre', ref: 'Negativo', type: 'text' },
+                { name: 'Leucocitos (Tira)', ref: 'Negativo', type: 'text' },
+                { name: 'EXAMEN MICROSCOPICO DEL SEDIMENTO', type: 'header' },
+                { name: 'Leucocitos', ref: '0 - 3', unit: 'por campo', type: 'number' },
+                { name: 'Eritrocitos', ref: '0 - 2', unit: 'por campo', type: 'number' },
+                { name: 'Células Epiteliales', ref: 'Escasas', type: 'text' },
+                { name: 'Bacterias', ref: 'Escasas', type: 'text' },
+                { name: 'Hilos Mucosos', ref: 'Ausentes', type: 'text' },
+                { name: 'Células de Levadura', ref: 'Ausentes', type: 'text' },
+                { name: 'Cristales', ref: 'Ausentes', type: 'text' },
+                { name: 'Cilindros', ref: 'Ausentes', type: 'text' },
+                { name: 'Parásitos', ref: 'Ausentes', type: 'text' },
+                { name: 'Células de tubulo renal', ref: 'Ausentes', type: 'text' }
+            ]
+        }
+    };
+    
+    function showAnalysisForm(type) {
+        document.querySelectorAll('.toggle-buttons button').forEach(b => b.classList.remove('active'));
+        document.querySelector(`#btnToggle${type === 'smac30' ? 'SMAC30' : (type === 'biometria' ? 'BH' : 'EGO')}`).classList.add('active');
+        
+        const analysisData = analysisTypes[type];
+        let formHTML = `
+            <table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">
+                <thead>
+                    <tr style="background:var(--border-color); font-size:0.9em; text-align:left;">
+                        <th style="padding:10px;">Examen</th>
+                        <th style="padding:10px;">Resultado</th>
+                        <th style="padding:10px;">Unidad</th>
+                        <th style="padding:10px;">Ref.</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        analysisData.fields.forEach(field => {
+            if (field.type === 'header') {
+                formHTML += `<tr><td colspan="4" style="font-weight:bold; padding: 15px 10px 5px; font-size: 1.1em;">${field.name}</td></tr>`;
+            } else {
+                formHTML += `
+                    <tr>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${field.name}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><input type="${field.type === 'number' ? 'number' : 'text'}" id="input-${field.name.replace(/ /g, '-')}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);"></td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.unit || ''}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.ref}</td>
+                    </tr>
+                `;
+            }
+        });
+
+        formHTML += `
+                </tbody>
+            </table>
+            <button class="btn-primary" onclick="addAnalysis('${type}')">Registrar Análisis</button>
+        `;
+        
+        document.getElementById('analysisFormContainer').innerHTML = formHTML;
+    }
+
+    function getAnalysisInterpretation(type, results) {
+        let issues = [];
+        const analysisData = analysisTypes[type];
+        
+        results.forEach(result => {
+            const fieldInfo = analysisData.fields.find(f => f.name === result.name);
+            if (!fieldInfo || fieldInfo.type !== 'number' || !result.value) return;
+            
+            const [min, max] = fieldInfo.ref.split(' - ').map(Number);
+            const value = parseFloat(result.value);
+            
+            if (value < min) {
+                issues.push({ name: result.name, value, status: 'bajo', ref: fieldInfo.ref });
+            } else if (value > max) {
+                issues.push({ name: result.name, value, status: 'alto', ref: fieldInfo.ref });
+            }
+        });
+        
+        if (issues.length === 0) {
+            return {
+                title: 'Resultados dentro de los rangos normales.',
+                summary: 'Todos los parámetros están en el rango esperado. ¡Excelente! Continúa con tus hábitos saludables.',
+                issues: null
+            };
+        } else {
+            let interpretation = {
+                title: 'Resultados fuera de rango detectados:',
+                summary: 'Algunos valores están fuera de los rangos de referencia. A continuación se detallan y se ofrecen posibles indicaciones.',
+                issues: issues
+            };
+            return interpretation;
+        }
+    }
+    
+    function getIssueText(issue) {
+        let text = `<strong>${issue.name}</strong> (${issue.value}): `;
+        if (issue.status === 'bajo') {
+            text += 'Bajo. Esto podría indicar ';
+            switch(issue.name) {
+                case 'Glucosa': text += 'hipoglucemia. Posiblemente por ingesta insuficiente de carbohidratos.'; break;
+                case 'Hemoglobina': text += 'anemia. Se sugiere evaluar la dieta y posible deficiencia de hierro.'; break;
+                case 'LDL-Colesterol': text += 'un nivel bajo de colesterol malo, lo cual es generalmente bueno, pero puede necesitar ser revisado por un médico en ciertos contextos.'; break;
+                case 'Sodio': text += 'hiponatremia. Posiblemente por exceso de agua o problemas renales.'; break;
+                default: text += 'la causa debe ser evaluada por un médico para un diagnóstico preciso.';
+            }
+        } else if (issue.status === 'alto') {
+            text += 'Alto. Esto podría indicar ';
+            switch(issue.name) {
+                case 'Glucosa': text += 'hiperglucemia. Se sugiere controlar la dieta y monitorear el nivel de azúcar en la sangre.'; break;
+                case 'Leucocitos': text += 'leucocitosis. Puede ser una respuesta a una infección o inflamación.'; break;
+                case 'Colesterol': text += 'hipercolesterolemia. Se recomienda mejorar la dieta y hacer más ejercicio.'; break;
+                case 'Trigliceridos': text += 'hipertrigliceridemia. Se aconseja reducir azúcares y grasas saturadas.'; break;
+                case 'Sodio': text += 'hipernatremia. Posiblemente por deshidratación.'; break;
+                case 'GGT': text += 'posible daño hepático o biliar. Es importante la evaluación médica.'; break;
+                default: text += 'la causa debe ser evaluada por un médico para un diagnóstico preciso.';
+            }
+        }
+        return text;
+    }
+
+    async function addAnalysis(type) {
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const patient = patientDoc.data();
+        const analysisData = analysisTypes[type];
+        const date = new Date().toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
+        
+        let newAnalysis = { type, date, timestamp: new Date(), results: [] };
+        
+        let allFieldsFilled = true;
+        analysisData.fields.forEach(field => {
+            if(field.type !== 'header') {
+                const input = document.getElementById(`input-${field.name.replace(/ /g, '-')}`);
+                if (!input.value.trim()) {
+                    allFieldsFilled = false;
+                }
+                newAnalysis.results.push({
+                    name: field.name,
+                    value: input.value.trim(),
+                    unit: field.unit,
+                    ref: field.ref
+                });
+            }
+        });
+        
+        // No alert if fields are empty, allowing partial uploads, but interpretation won't be as accurate
+        
+        const interpretation = getAnalysisInterpretation(type, newAnalysis.results);
+        newAnalysis.interpretation = interpretation;
+
+        patient.analysis.unshift(newAnalysis);
+        await db.collection("patients").doc(currentPatientId).update({ analysis: patient.analysis });
+        
+        renderAnalysisHistory();
+        showAnalysisForm(type);
+        alert('Análisis registrado con éxito.');
+    }
+    
+    async function renderAnalysisHistory() {
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const analysisList = patientDoc.data().analysis;
+        const analysisHistoryDiv = document.getElementById('analysisHistory');
+        
+        if (!analysisList || analysisList.length === 0) {
+            analysisHistoryDiv.innerHTML = "<p style='text-align:center;'>No hay análisis registrados.</p>";
+            return;
+        }
+
+        analysisHistoryDiv.innerHTML = analysisList.map((a, i) => {
+            const title = a.type === 'smac30' ? 'SMAC 30' : a.type === 'biometria' ? 'Biometría Hemática' : 'EGO';
+            let interpretationHTML = '';
+            if (a.interpretation && a.interpretation.issues) {
+                interpretationHTML = `
+                    <div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 8px; margin-top: 10px;">
+                        <strong><i class="fa-solid fa-triangle-exclamation"></i> ${a.interpretation.title}</strong>
+                        <ul>
+                            ${a.interpretation.issues.map(issue => `
+                                <li>
+                                    ${getIssueText(issue)}
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+            } else if (a.interpretation) {
+                 interpretationHTML = `
+                    <div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 8px; margin-top: 10px;">
+                        <strong><i class="fa-solid fa-check-circle"></i> ${a.interpretation.title}</strong>
+                        <p style="margin:0;">${a.interpretation.summary}</p>
+                    </div>
+                 `;
+            }
+            
+            return `
+                <div class="history-entry">
+                    <div class="history-header">
+                        <div class="icon analysis"><i class="fa-solid fa-microscope"></i></div>
+                        <div class="history-details">
+                            <div class="data"><strong>${title}</strong></div>
+                            <div class="date">${a.date}</div>
+                        </div>
+                        <div style="margin-left:auto;">
+                            <button class="icon-btn" onclick="openEditAnalysisModal(${i})"><i class="fa-solid fa-pen"></i></button>
+                            <button class="icon-btn" onclick="deleteAnalysis(${i})"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                    ${interpretationHTML}
+                </div>
+            `;
+        }).join('');
+    }
+    
+    async function openEditAnalysisModal(index) {
+        currentAnalysisEditIndex = index;
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const analysis = patientDoc.data().analysis[index];
+        const analysisData = analysisTypes[analysis.type];
+        
+        let content = `
+            <table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">
+                <thead>
+                    <tr style="background:var(--border-color); font-size:0.9em; text-align:left;">
+                        <th style="padding:10px;">Examen</th>
+                        <th style="padding:10px;">Resultado</th>
+                        <th style="padding:10px;">Unidad</th>
+                        <th style="padding:10px;">Ref.</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        analysisData.fields.forEach(field => {
+            if (field.type === 'header') {
+                content += `<tr><td colspan="4" style="font-weight:bold; padding: 15px 10px 5px; font-size: 1.1em;">${field.name}</td></tr>`;
+            } else {
+                const currentValue = analysis.results.find(r => r.name === field.name)?.value || '';
+                content += `
+                    <tr>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${field.name}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><input type="${field.type === 'number' ? 'number' : 'text'}" id="edit-input-${field.name.replace(/ /g, '-')}" value="${currentValue}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);"></td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.unit || ''}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.ref}</td>
+                    </tr>
+                `;
+            }
+        });
+        
+        content += `
+                </tbody>
+            </table>
+        `;
+
+        document.getElementById('editAnalysisModalTitle').innerText = `Editar ${analysisData.title}`;
+        document.getElementById('editAnalysisModalBody').innerHTML = content;
+        openModal('editAnalysisModal');
+    }
+    
+    async function saveAnalysisEdit() {
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const patient = patientDoc.data();
+        const analysisToUpdate = patient.analysis[currentAnalysisEditIndex];
+        const analysisData = analysisTypes[analysisToUpdate.type];
+        
+        analysisToUpdate.results = [];
+        analysisData.fields.forEach(field => {
+            if (field.type !== 'header') {
+                const input = document.getElementById(`edit-input-${field.name.replace(/ /g, '-')}`);
+                analysisToUpdate.results.push({
+                    name: field.name,
+                    value: input.value.trim(),
+                    unit: field.unit,
+                    ref: field.ref
+                });
+            }
+        });
+        
+        const interpretation = getAnalysisInterpretation(analysisToUpdate.type, analysisToUpdate.results);
+        analysisToUpdate.interpretation = interpretation;
+        
+        await db.collection("patients").doc(currentPatientId).update({ analysis: patient.analysis });
+        closeModal('editAnalysisModal');
+        renderAnalysisHistory();
+        alert('Análisis actualizado con éxito.');
+    }
+    
+    async function deleteAnalysis(index) {
+        if(confirm('¿Seguro que quieres eliminar este análisis?')) {
+            const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+            const patient = patientDoc.data();
+            patient.analysis.splice(index, 1);
+            await db.collection("patients").doc(currentPatientId).update({ analysis: patient.analysis });
+            renderAnalysisHistory();
+        }
+    }
+    
     // --- MODAL Y NOTIFICACIONES ---
     function openModal(id) { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
