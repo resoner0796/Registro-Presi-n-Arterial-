@@ -28,6 +28,10 @@
       --text-muted-color: #6c757d;
       --border-color: #e9ecef;
       --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+      --bp-normal: #28a745;
+      --bp-low: #ffc107;
+      --bp-high: #dc3545;
     }
     
     .dark-mode {
@@ -42,6 +46,10 @@
       --text-muted-color: #adb5bd;
       --border-color: #343a40;
       --shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+      --bp-normal: #198754;
+      --bp-low: #ffc107;
+      --bp-high: #dc3545;
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -144,8 +152,63 @@
         font-size: 0.9em; margin-top: 8px; padding-top: 8px;
         border-top: 1px dashed var(--border-color); color: var(--text-muted-color);
     }
-
     .settings-group { margin-bottom: 25px; }
+    
+    /* Estilos nuevos para el indicador de presión y sugerencias */
+    #bpIndicator {
+        display: none;
+        padding: 10px 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+        font-weight: 600;
+        text-align: center;
+        color: #fff;
+    }
+    #bpIndicator.normal { background-color: var(--bp-normal); }
+    #bpIndicator.low { background-color: var(--bp-low); }
+    #bpIndicator.high { background-color: var(--bp-high); }
+    
+    .suggestions-container { margin-top: 15px; }
+    .suggestions-container button {
+        width: 100%;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        padding: 12px;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    #suggestionsPanel {
+        display: none;
+        margin-top: 10px;
+        background-color: var(--card-bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 15px;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+    #suggestionsPanel ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    #suggestionsPanel li {
+        margin-bottom: 10px;
+        font-size: 0.9em;
+        line-height: 1.4;
+    }
+    #suggestionsPanel li i {
+        margin-right: 8px;
+        color: var(--primary-color);
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    /* Fin de nuevos estilos */
     
     /* Modal */
     .modal {
@@ -303,7 +366,6 @@
         document.getElementById("homeScreen").classList.add("active");
         document.getElementById('headerLeft').innerHTML = '';
         document.querySelector('header .title').style.marginLeft = '-24px';
-
     }
 
     function switchPatientView(view) {
@@ -380,13 +442,101 @@
         document.querySelector(`.toggle-buttons button[onclick="showForm('${type}')"]`).classList.add('active');
 
         let formHTML = '';
-        if(type === 'bp') formHTML = `<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;"><input type="number" id="sys" placeholder="Sistólica"><input type="number" id="dia" placeholder="Diastólica"><input type="number" id="hr" placeholder="Pulso"></div>`;
-        else if (type === 'weight') formHTML = `<input type="number" id="weight" placeholder="Peso (kg)">`;
-        else if (type === 'glucose') formHTML = `<input type="number" id="glucose" placeholder="Glucosa (mg/dL)">`;
+        if(type === 'bp') {
+            formHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                    <input type="number" id="sys" placeholder="Sistólica" oninput="checkBP()">
+                    <input type="number" id="dia" placeholder="Diastólica" oninput="checkBP()">
+                    <input type="number" id="hr" placeholder="Pulso">
+                </div>
+                <div id="bpIndicator"></div>
+                <div class="suggestions-container">
+                    <button onclick="toggleSuggestions()">
+                        Sugerencias <i class="fa-solid fa-chevron-down" id="suggestionsToggleIcon"></i>
+                    </button>
+                    <div id="suggestionsPanel"></div>
+                </div>`;
+        } else if (type === 'weight') {
+            formHTML = `<input type="number" id="weight" placeholder="Peso (kg)">`;
+        } else if (type === 'glucose') {
+            formHTML = `<input type="number" id="glucose" placeholder="Glucosa (mg/dL)">`;
+        }
         
         document.getElementById('formContainer').innerHTML = formHTML + 
             `<textarea id="recordNotes" placeholder="Añadir notas (opcional)..." style="margin-top: 10px;"></textarea>
              <button class="btn-primary" onclick="addRecord('${type}')" style="margin-top: 10px;">Registrar</button>`;
+    }
+
+    // --- NUEVAS FUNCIONES PARA PRESIÓN ARTERIAL ---
+    function checkBP() {
+        const sys = parseInt(document.getElementById('sys').value);
+        const dia = parseInt(document.getElementById('dia').value);
+        const indicator = document.getElementById('bpIndicator');
+        const suggestionsPanel = document.getElementById('suggestionsPanel');
+
+        if (isNaN(sys) || isNaN(dia) || sys <= 0 || dia <= 0) {
+            indicator.style.display = 'none';
+            suggestionsPanel.style.display = 'none';
+            return;
+        }
+
+        const { category, color, text } = getBloodPressureCategory(sys, dia);
+        const suggestions = getSuggestions(category);
+
+        indicator.style.display = 'block';
+        indicator.className = '';
+        indicator.classList.add(category);
+        indicator.textContent = `Presión: ${text}`;
+        
+        suggestionsPanel.innerHTML = `<ul>${suggestions.map(s => `<li><i class="fa-solid fa-lightbulb"></i>${s}</li>`).join('')}</ul>`;
+    }
+
+    function toggleSuggestions() {
+        const panel = document.getElementById('suggestionsPanel');
+        const icon = document.getElementById('suggestionsToggleIcon');
+        if (panel.style.display === 'block') {
+            panel.style.display = 'none';
+            icon.className = 'fa-solid fa-chevron-down';
+        } else {
+            panel.style.display = 'block';
+            icon.className = 'fa-solid fa-chevron-up';
+        }
+    }
+
+    function getBloodPressureCategory(sys, dia) {
+        if (sys < 90 || dia < 60) {
+            return { category: 'low', color: 'var(--bp-low)', text: 'Baja' };
+        } else if (sys <= 120 && dia <= 80) {
+            return { category: 'normal', color: 'var(--bp-normal)', text: 'Normal' };
+        } else {
+            return { category: 'high', color: 'var(--bp-high)', text: 'Alta' };
+        }
+    }
+
+    function getSuggestions(category) {
+        if (category === 'low') {
+            return [
+                "Beba más agua para prevenir la deshidratación.",
+                "Consuma comidas pequeñas y frecuentes.",
+                "Evite cambios de posición bruscos (sentarse, levantarse).",
+                "Considere aumentar el consumo de sal si su médico lo aprueba."
+            ];
+        } else if (category === 'high') {
+            return [
+                "Reduzca el consumo de sal y alimentos procesados.",
+                "Aumente la ingesta de frutas, verduras y granos integrales.",
+                "Realice actividad física regular (consulte a su médico).",
+                "Limite el consumo de alcohol y cafeína.",
+                "Practique técnicas de relajación como la meditación o el yoga."
+            ];
+        } else {
+            return [
+                "Mantenga una dieta equilibrada y saludable.",
+                "Realice ejercicio de forma regular.",
+                "Limite el estrés y duerma lo suficiente.",
+                "Continúe monitoreando su presión arterial regularmente."
+            ];
+        }
     }
 
     function addRecord(type) {
