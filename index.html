@@ -1235,13 +1235,9 @@
         
         let newAnalysis = { type, date, timestamp: new Date(), results: [] };
         
-        let allFieldsFilled = true;
         analysisData.fields.forEach(field => {
             if(field.type !== 'header') {
                 const input = document.getElementById(`input-${field.name.replace(/ /g, '-')}`);
-                if (!input.value.trim()) {
-                    allFieldsFilled = false;
-                }
                 newAnalysis.results.push({
                     name: field.name,
                     value: input.value.trim(),
@@ -1251,12 +1247,12 @@
             }
         });
         
-        // No alert if fields are empty, allowing partial uploads, but interpretation won't be as accurate
-        
         const interpretation = getAnalysisInterpretation(type, newAnalysis.results);
         newAnalysis.interpretation = interpretation;
 
         patient.analysis.unshift(newAnalysis);
+        
+        // --- LÍNEA DE CÓDIGO CORREGIDA Y AGREGADA ---
         await db.collection("patients").doc(currentPatientId).update({ analysis: patient.analysis });
         
         renderAnalysisHistory();
@@ -1275,7 +1271,7 @@
         }
 
         analysisHistoryDiv.innerHTML = analysisList.map((a, i) => {
-            const title = a.type === 'smac30' ? 'SMAC 30' : a.type === 'biometria' ? 'Biometría Hemática' : 'EGO';
+            const title = analysisTypes[a.type]?.title || 'Análisis Desconocido';
             let interpretationHTML = '';
             if (a.interpretation && a.interpretation.issues) {
                 interpretationHTML = `
