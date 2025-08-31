@@ -13,485 +13,526 @@
   <meta name="apple-mobile-web-app-title" content="VitalTrack">
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     :root {
       --primary-color: #007bff;
       --secondary-color: #28a745;
-      --background-color: #f4f7f9;
-      --card-background: #ffffff;
-      --text-color: #333;
-      --text-muted: #6c757d;
+      --glucose-color: #fd7e14;
+      --danger-color: #dc3545;
+      
+      --bg-color: #f4f7f9;
+      --card-bg-color: #ffffff;
+      --text-color: #212529;
+      --text-muted-color: #6c757d;
       --border-color: #e9ecef;
       --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
+    
+    .dark-mode {
+      --primary-color: #0d6efd;
+      --secondary-color: #198754;
+      --glucose-color: #fd7e14;
+      --danger-color: #dc3545;
 
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
+      --bg-color: #121212;
+      --card-bg-color: #1e1e1e;
+      --text-color: #e9ecef;
+      --text-muted-color: #adb5bd;
+      --border-color: #343a40;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: var(--background-color);
+      background: var(--bg-color);
       color: var(--text-color);
+      transition: background 0.3s, color 0.3s;
     }
 
     .app {
       width: 100%;
       max-width: 500px;
-      height: 100vh;
+      height: 100dvh;
       margin: auto;
       display: flex;
       flex-direction: column;
-      background: var(--card-background);
+      background: var(--card-bg-color);
       box-shadow: var(--shadow);
     }
 
     header {
-      padding: 16px 20px;
+      padding: 16px;
       text-align: center;
       font-size: 1.5em;
       font-weight: 600;
-      background: var(--card-background);
+      background: var(--card-bg-color);
       border-bottom: 1px solid var(--border-color);
       color: var(--primary-color);
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 10px;
-    }
-
-    .screen {
-      flex: 1;
-      display: none;
-      flex-direction: column;
-      overflow: hidden;
-      position: relative;
-    }
-    .screen.active {
-      display: flex;
-    }
-    .screen-content {
-      padding: 20px;
-      flex: 1;
-      overflow-y: auto;
-    }
-
-    /* --- Pantalla de Inicio --- */
-    #homeScreen .screen-content {
-        padding-bottom: 90px; /* Espacio para el FAB */
-    }
-    h3 {
-        margin-top: 0;
-        font-weight: 600;
-        color: var(--text-color);
-    }
-    .patient-list .patient-card {
-      padding: 16px;
-      background: var(--card-background);
-      margin-bottom: 12px;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-      border: 1px solid var(--border-color);
-      font-weight: 500;
-      display: flex;
       justify-content: space-between;
-      align-items: center;
+      position: relative;
+      z-index: 10;
     }
-    .patient-card:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow);
-    }
-    .patient-card i {
-      color: var(--text-muted);
-      opacity: 0.5;
-    }
-    .add-patient-form {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-    }
+    header .title { flex-grow: 1; text-align: center; margin-left: -24px; }
+    header .theme-toggle { font-size: 0.8em; cursor: pointer; padding: 8px; }
+    header .header-btn { width: 40px; text-align: center; font-size: 1.1em; color: var(--text-color); cursor: pointer;}
 
-    /* --- Pantalla del Paciente --- */
-    .dashboard {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 15px;
-        padding: 15px;
-        background: linear-gradient(135deg, var(--primary-color), #0056b3);
-        color: white;
-    }
-    .dashboard-metric {
-        text-align: center;
-    }
-    .dashboard-metric .label {
-        font-size: 0.8em;
-        opacity: 0.8;
-    }
-    .dashboard-metric .value {
-        font-size: 2em;
-        font-weight: 700;
-    }
-    .patient-name-header {
-      text-align: center;
-      padding: 10px;
-      font-size: 1.2em;
-      font-weight: 600;
-      word-break: break-word;
-      background: var(--background-color);
-    }
-    
-    .toggle-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-        margin-bottom: 20px;
-    }
-    .toggle-buttons button {
-        background: var(--border-color);
-        color: var(--text-muted);
-        border: none;
-        padding: 10px 15px;
-        border-radius: 20px;
-        font-weight: 500;
-        cursor: pointer;
-    }
-    .toggle-buttons button.active {
-        background: var(--primary-color);
-        color: white;
-    }
 
-    .form-container {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    
-    .input-group {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-        gap: 10px;
-    }
-    
-    .status {
-      margin: 15px 0;
-      font-weight: bold;
-      text-align: center;
-      font-size: 1.1em;
-      padding: 10px;
-      border-radius: 8px;
-    }
-    .status.normal { background-color: #eaf7ed; color: #28a745; }
-    .status.baja { background-color: #fff0f0; color: #dc3545; }
-    .status.alta { background-color: #fff0f0; color: #dc3545; }
+    .screen { flex: 1; display: none; flex-direction: column; overflow: hidden; position: relative; }
+    .screen.active { display: flex; }
+    .screen-content { padding: 20px; flex: 1; overflow-y: auto; }
 
-    .history {
-      margin-top: 20px;
+    /* Componentes Generales */
+    h3 { margin-top: 0; }
+    input, textarea, select {
+      width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);
+      font-size: 1em; background: var(--bg-color); color: var(--text-color);
     }
-    .history-entry {
-      background: var(--background-color);
-      padding: 12px 15px;
-      margin-bottom: 10px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-    .history-entry .icon {
-        font-size: 1.5em;
-    }
-    .history-entry .icon-bp { color: var(--primary-color); }
-    .history-entry .icon-weight { color: var(--secondary-color); }
-
-    .history-entry .details .data { font-weight: 500; }
-    .history-entry .details .date { font-size: 0.8em; color: var(--text-muted); }
-
-    /* --- Elementos Generales --- */
-    input[type="text"], input[type="number"] {
-      width: 100%;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-      font-size: 1em;
-      background: var(--background-color);
-    }
-    input:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        background: white;
-    }
-
+    textarea { resize: vertical; min-height: 80px; }
     button {
-      padding: 14px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1em;
-      font-weight: 600;
-      transition: background 0.2s;
+      padding: 14px; border: none; border-radius: 8px; cursor: pointer;
+      font-size: 1em; font-weight: 600; transition: background 0.2s;
     }
-    .btn-primary {
-      background: var(--primary-color);
-      color: #fff;
+    .btn-primary { background: var(--primary-color); color: #fff; }
+    .btn-danger { background: var(--danger-color); color: #fff; }
+    .btn-secondary { background: var(--text-muted-color); color: #fff; }
+    .icon-btn { background: none; border: none; cursor: pointer; color: var(--text-muted-color); font-size: 1.1em; padding: 5px; }
+
+    /* Pantalla Inicio */
+    .patient-card {
+      padding: 16px; background: var(--card-bg-color); margin-bottom: 12px;
+      border-radius: 12px; border: 1px solid var(--border-color);
+      display: flex; justify-content: space-between; align-items: center;
     }
-    .btn-primary:hover {
-      background: #0056b3;
-    }
-    .btn-secondary {
-      background: var(--text-muted);
-      color: #fff;
-    }
-    .btn-secondary:hover {
-        background: #5a6268;
-    }
+    .patient-card .patient-name { cursor: pointer; flex-grow: 1; font-weight: 500; }
     
-    .fab {
-        position: absolute;
-        bottom: 20px;
-        right: 20px;
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: var(--primary-color);
-        color: white;
-        font-size: 1.8em;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        box-shadow: 0 6px 15px rgba(0, 123, 255, 0.4);
-        border: none;
-        cursor: pointer;
+    /* Pantalla Paciente */
+    .dashboard {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 15px; padding: 15px; background: linear-gradient(135deg, var(--primary-color), #0056b3); color: white;
+    }
+    .dashboard-metric .label { font-size: 0.8em; opacity: 0.8; }
+    .dashboard-metric .value { font-size: 1.8em; font-weight: 700; }
+    .goal-progress { font-size: 0.7em; opacity: 0.9; margin-top: 4px; }
+    
+    .patient-bottom-nav { display: flex; border-top: 1px solid var(--border-color); }
+    .patient-bottom-nav .nav-item {
+        flex: 1; text-align: center; padding: 12px 5px; cursor: pointer;
+        color: var(--text-muted-color); border-top: 3px solid transparent; transition: color 0.2s, border-color 0.2s;
+    }
+    .patient-bottom-nav .nav-item.active { color: var(--primary-color); border-top-color: var(--primary-color); }
+
+    .toggle-buttons { display: flex; gap: 10px; margin-bottom: 20px; }
+    .toggle-buttons button { background: var(--border-color); color: var(--text-muted-color); flex-grow: 1; padding: 10px 15px; border-radius: 20px;}
+    .toggle-buttons button.active.bp { background: var(--primary-color); color: white; }
+    .toggle-buttons button.active.weight { background: var(--secondary-color); color: white; }
+    .toggle-buttons button.active.glucose { background: var(--glucose-color); color: white; }
+
+    .history-entry { background: var(--bg-color); padding: 12px; margin-bottom: 10px; border-radius: 8px; }
+    .history-header { display: flex; align-items: center; gap: 15px; }
+    .history-header .icon i { font-size: 1.5em; }
+    .icon.bp { color: var(--primary-color); } .icon.weight { color: var(--secondary-color); } .icon.glucose { color: var(--glucose-color); }
+    .history-details .data { font-weight: 500; }
+    .history-details .date { font-size: 0.8em; color: var(--text-muted-color); }
+    .history-notes {
+        font-size: 0.9em; margin-top: 8px; padding-top: 8px;
+        border-top: 1px dashed var(--border-color); color: var(--text-muted-color);
+    }
+
+    .settings-group { margin-bottom: 25px; }
+    
+    /* Modal */
+    .modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); display: none; justify-content: center;
+      align-items: center; z-index: 1000;
+    }
+    .modal.active { display: flex; }
+    .modal-content {
+      background: var(--card-bg-color); padding: 20px; border-radius: 12px;
+      width: 90%; max-width: 400px;
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <header><i class="fa-solid fa-heart-pulse"></i> VitalTrack</header>
+    <header>
+        <div id="headerLeft" class="header-btn"></div>
+        <div class="title"><i class="fa-solid fa-heart-pulse"></i> VitalTrack</div>
+        <div class="theme-toggle header-btn" onclick="toggleTheme()"><i class="fa-solid fa-moon"></i></div>
+    </header>
 
     <div id="homeScreen" class="screen active">
       <div class="screen-content">
         <h3>Mis Pacientes</h3>
-        <div class="add-patient-form">
+        <div style="display: flex; gap: 10px;">
             <input type="text" id="newPatientName" placeholder="Nuevo paciente..." style="flex-grow: 1;">
             <button class="btn-primary" onclick="addPatient()" style="padding: 0 20px;"><i class="fa-solid fa-plus"></i></button>
         </div>
-        <div class="patient-list" id="patientList" style="margin-top: 20px;"></div>
+        <div id="patientList" style="margin-top: 20px;"></div>
       </div>
     </div>
 
     <div id="patientScreen" class="screen">
         <div class="dashboard">
-            <div class="dashboard-metric" id="lastPressure">
-                <div class="label"><i class="fa-solid fa-droplet"></i> PRESIÓN</div>
-                <div class="value">--/--</div>
-            </div>
-            <div class="dashboard-metric" id="lastWeight">
-                <div class="label"><i class="fa-solid fa-weight-scale"></i> PESO</div>
-                <div class="value">-- kg</div>
-            </div>
+            <div id="lastPressure" class="dashboard-metric"><div class="label"><i class="fa-solid fa-droplet"></i> PRESIÓN</div><div class="value">--/--</div></div>
+            <div id="lastWeight" class="dashboard-metric"><div class="label"><i class="fa-solid fa-weight-scale"></i> PESO</div><div class="value">-- kg</div><div class="goal-progress"></div></div>
+            <div id="lastGlucose" class="dashboard-metric"><div class="label"><i class="fa-solid fa-staff-aesculapius"></i> GLUCOSA</div><div class="value">--</div></div>
         </div>
-        <div class="patient-name-header" id="patientNameHeader"></div>
       
-        <div class="screen-content">
-            <div class="toggle-buttons">
-                <button id="btnToggleBP" class="active" onclick="showForm('bp')">Presión Arterial</button>
-                <button id="btnToggleWeight" onclick="showForm('weight')">Peso Corporal</button>
-            </div>
+        <div class="screen-content" id="patientContentArea"></div>
 
-            <div id="pressureForm" class="form-container">
-                <div class="input-group">
-                    <input type="number" id="sys" placeholder="Sistólica">
-                    <input type="number" id="dia" placeholder="Diastólica">
-                    <input type="number" id="hr" placeholder="Pulso">
-                </div>
-                <div class="status" id="status" style="display:none;"></div>
-                <button class="btn-primary" onclick="addRecord()"><i class="fa-solid fa-plus"></i> Registrar Toma</button>
-            </div>
-
-            <div id="weightForm" class="form-container" style="display:none;">
-                <input type="number" id="weight" placeholder="Peso (kg)">
-                <button class="btn-primary" onclick="addRecord()"><i class="fa-solid fa-plus"></i> Registrar Peso</button>
-            </div>
-            
-            <h3 style="margin-top: 30px;">Historial de Registros</h3>
-            <div class="history" id="history"></div>
+        <div class="patient-bottom-nav">
+            <div class="nav-item active" onclick="switchPatientView('records')"><i class="fa-solid fa-clipboard-list"></i><div>Registros</div></div>
+            <div class="nav-item" onclick="switchPatientView('charts')"><i class="fa-solid fa-chart-line"></i><div>Gráficas</div></div>
+            <div class="nav-item" onclick="switchPatientView('meds')"><i class="fa-solid fa-pills"></i><div>Medicamentos</div></div>
+            <div class="nav-item" onclick="switchPatientView('settings')"><i class="fa-solid fa-cog"></i><div>Ajustes</div></div>
         </div>
-        <button class="fab" onclick="backHome()"><i class="fa-solid fa-arrow-left"></i></button>
     </div>
   </div>
 
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+        <h3 id="editModalTitle">Editar Registro</h3>
+        <div id="editModalBody"></div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn-secondary" onclick="closeModal('editModal')">Cancelar</button>
+            <button class="btn-primary" onclick="saveRecordEdit()">Guardar Cambios</button>
+        </div>
+    </div>
+  </div>
+  
   <script>
+    // --- INICIALIZACIÓN Y CONFIGURACIÓN GLOBAL ---
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('Service Worker registrado:', reg))
-          .catch(err => console.log('Error al registrar SW:', err));
-      });
+        window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
     }
 
     let patients = JSON.parse(localStorage.getItem("vitaltrack_patients")) || [];
     let currentPatientIndex = null;
-    let currentForm = 'bp'; // 'bp' o 'weight'
+    let currentRecordEditIndex = null;
+    let charts = {}; // Para almacenar instancias de gráficos y destruirlas
+    
+    // --- LÓGICA DEL TEMA (MODO OSCURO/CLARO) ---
+    const themeToggleIcon = document.querySelector('.theme-toggle i');
+    
+    function applyTheme(theme) {
+        if (theme === 'dark') {
+            document.body.classList.add('dark-mode');
+            themeToggleIcon.className = 'fa-solid fa-sun';
+        } else {
+            document.body.classList.remove('dark-mode');
+            themeToggleIcon.className = 'fa-solid fa-moon';
+        }
+        localStorage.setItem('vitaltrack_theme', theme);
+    }
 
-    // --- Funciones de guardado y renderizado ---
+    function toggleTheme() {
+        const currentTheme = localStorage.getItem('vitaltrack_theme') || 'light';
+        applyTheme(currentTheme === 'light' ? 'dark' : 'light');
+    }
 
+    // --- FUNCIONES DE GUARDADO Y RENDERIZADO ---
     function saveData() {
-      localStorage.setItem("vitaltrack_patients", JSON.stringify(patients));
+        localStorage.setItem("vitaltrack_patients", JSON.stringify(patients));
+    }
+    
+    function dataMigration() {
+        patients.forEach(p => {
+            if (!p.medications) p.medications = [];
+            if (!p.weightGoal) p.weightGoal = null;
+            if (!p.reminders) p.reminders = { enabled: false, time: '08:00' };
+            if (p.records && p.records.length > 0) {
+                 p.records.forEach(r => {
+                    if (r.notes === undefined) r.notes = '';
+                });
+            }
+        });
+        saveData();
     }
 
     function renderPatients() {
-      const list = document.getElementById("patientList");
-      list.innerHTML = "";
-      patients.forEach((p, i) => {
-        const div = document.createElement("div");
-        div.className = "patient-card";
-        div.innerHTML = `<span>${p.name}</span><i class="fa-solid fa-chevron-right"></i>`;
-        div.onclick = () => openPatient(i);
-        list.appendChild(div);
-      });
+        document.getElementById("patientList").innerHTML = patients.map((p, i) => `
+            <div class="patient-card">
+                <span class="patient-name" onclick="openPatient(${i})">${p.name}</span>
+                <button class="icon-btn" onclick="deletePatient(${i})"><i class="fa-solid fa-trash"></i></button>
+            </div>`).join('');
     }
 
-    // --- Navegación y gestión de pacientes ---
-
+    // --- NAVEGACIÓN Y GESTIÓN DE PACIENTES ---
     function addPatient() {
-      const nameInput = document.getElementById("newPatientName");
-      const name = nameInput.value.trim();
-      if (!name) return;
-      patients.push({ name, records: [] });
-      saveData();
-      renderPatients();
-      nameInput.value = "";
+        const nameInput = document.getElementById("newPatientName");
+        const name = nameInput.value.trim();
+        if (!name) return;
+        patients.push({ 
+            name: name, records: [], medications: [],
+            weightGoal: null, reminders: { enabled: false, time: '08:00' }
+        });
+        saveData();
+        renderPatients();
+        nameInput.value = "";
+    }
+
+    function deletePatient(index) {
+        if (confirm(`¿Seguro que quieres eliminar a ${patients[index].name} y todos sus registros?`)) {
+            patients.splice(index, 1);
+            saveData();
+            renderPatients();
+        }
     }
 
     function openPatient(index) {
-      currentPatientIndex = index;
-      document.getElementById("homeScreen").classList.remove("active");
-      document.getElementById("patientScreen").classList.add("active");
-      document.getElementById("patientNameHeader").innerText = patients[index].name;
-      showForm('bp'); // Siempre mostrar el form de presión al abrir
-      updateDashboard();
-      renderHistory();
+        currentPatientIndex = index;
+        document.getElementById("homeScreen").classList.remove("active");
+        document.getElementById("patientScreen").classList.add("active");
+        document.getElementById('headerLeft').innerHTML = `<i class="fa-solid fa-arrow-left" onclick="backHome()"></i>`;
+        document.querySelector('header .title').style.marginLeft = '0';
+        updateDashboard();
+        switchPatientView('records');
     }
 
     function backHome() {
-      document.getElementById("patientScreen").classList.remove("active");
-      document.getElementById("homeScreen").classList.add("active");
-      currentPatientIndex = null;
+        currentPatientIndex = null;
+        document.getElementById("patientScreen").classList.remove("active");
+        document.getElementById("homeScreen").classList.add("active");
+        document.getElementById('headerLeft').innerHTML = '';
+        document.querySelector('header .title').style.marginLeft = '-24px';
+
     }
 
-    function showForm(formType) {
-        currentForm = formType;
-        document.getElementById('pressureForm').style.display = formType === 'bp' ? 'flex' : 'none';
-        document.getElementById('weightForm').style.display = formType === 'weight' ? 'flex' : 'none';
-        document.getElementById('btnToggleBP').classList.toggle('active', formType === 'bp');
-        document.getElementById('btnToggleWeight').classList.toggle('active', formType === 'weight');
-    }
-
-    // --- Lógica de registros ---
-
-    function addRecord() {
-      const patient = patients[currentPatientIndex];
-      const date = new Date().toLocaleString('es-MX');
-      let newRecord = null;
-
-      if (currentForm === 'bp') {
-        const sys = parseInt(document.getElementById("sys").value);
-        const dia = parseInt(document.getElementById("dia").value);
-        const hr = parseInt(document.getElementById("hr").value);
-        if (!sys || !dia || !hr) return alert("Por favor, completa todos los campos de presión.");
+    function switchPatientView(view) {
+        document.querySelectorAll('.patient-bottom-nav .nav-item').forEach(el => el.classList.remove('active'));
+        document.querySelector(`.patient-bottom-nav .nav-item[onclick="switchPatientView('${view}')"]`).classList.add('active');
         
-        newRecord = { type: 'bp', sys, dia, hr, date };
-        document.getElementById("sys").value = "";
-        document.getElementById("dia").value = "";
-        document.getElementById("hr").value = "";
-      } else if (currentForm === 'weight') {
-        const weight = parseFloat(document.getElementById("weight").value);
-        if (!weight) return alert("Por favor, ingresa un valor de peso.");
-        
-        newRecord = { type: 'weight', value: weight, unit: 'kg', date };
-        document.getElementById("weight").value = "";
-      }
-      
-      if(newRecord) {
-        patient.records.unshift(newRecord);
-        saveData();
-        updateDashboard();
-        renderHistory();
-      }
-    }
-
-    function renderHistory() {
-      const historyDiv = document.getElementById("history");
-      const records = patients[currentPatientIndex].records;
-      historyDiv.innerHTML = "";
-      if (records.length === 0) {
-        historyDiv.innerHTML = "<p style='text-align:center; color: var(--text-muted);'>No hay registros todavía.</p>";
-        return;
-      }
-      records.forEach(r => {
-        const div = document.createElement("div");
-        div.className = "history-entry";
-        let content = '';
-        if (r.type === 'bp') {
-          content = `
-            <div class="icon icon-bp"><i class="fa-solid fa-heart-pulse"></i></div>
-            <div class="details">
-              <div class="data">${r.sys}/${r.dia} mmHg &nbsp;&nbsp;|&nbsp;&nbsp; ${r.hr} lpm</div>
-              <div class="date">${r.date}</div>
-            </div>`;
-        } else if (r.type === 'weight') {
-          content = `
-            <div class="icon icon-weight"><i class="fa-solid fa-weight-scale"></i></div>
-            <div class="details">
-              <div class="data">${r.value} ${r.unit}</div>
-              <div class="date">${r.date}</div>
-            </div>`;
+        const contentArea = document.getElementById('patientContentArea');
+        switch(view) {
+            case 'records': 
+                contentArea.innerHTML = getRecordsViewHTML(); 
+                showForm('bp');
+                renderHistory();
+                break;
+            case 'charts': 
+                contentArea.innerHTML = getChartsViewHTML();
+                renderCharts(); 
+                break;
+            case 'meds': 
+                contentArea.innerHTML = getMedsViewHTML(); 
+                renderMeds(); 
+                break;
+            case 'settings': 
+                contentArea.innerHTML = getSettingsViewHTML(); 
+                renderSettings(); 
+                break;
         }
-        div.innerHTML = content;
-        historyDiv.appendChild(div);
-      });
+    }
+    
+    // --- VISTAS DE PANTALLA PACIENTE (HTML DINÁMICO) ---
+    function getRecordsViewHTML() {
+        return `
+            <div class="toggle-buttons">
+                <button id="btnToggleBP" class="bp" onclick="showForm('bp')">Presión</button>
+                <button id="btnToggleWeight" class="weight" onclick="showForm('weight')">Peso</button>
+                <button id="btnToggleGlucose" class="glucose" onclick="showForm('glucose')">Glucosa</button>
+            </div>
+            <div id="formContainer"></div>
+            <h3 style="margin-top: 30px;">Historial de Registros</h3>
+            <div id="history"></div>`;
+    }
+    function getChartsViewHTML() { return `<h3>Gráficas de Progreso</h3> <canvas id="bpChart"></canvas> <canvas id="weightChart" style="margin-top: 20px;"></canvas> <canvas id="glucoseChart" style="margin-top: 20px;"></canvas>`; }
+    function getMedsViewHTML() {
+        return `<h3>Medicamentos Actuales</h3>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <input type="text" id="medName" placeholder="Nombre del medicamento">
+                    <input type="text" id="medDose" placeholder="Dosis (ej. 10mg)">
+                    <button class="btn-primary" onclick="addMed()"><i class="fa-solid fa-plus"></i></button>
+                </div>
+                <div id="medsList"></div>`;
+    }
+    function getSettingsViewHTML() {
+        return `<h3>Ajustes del Paciente</h3>
+                <div class="settings-group">
+                    <h4>Meta de Peso</h4>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="number" id="weightGoalInput" placeholder="Peso deseado (kg)">
+                        <button class="btn-primary" onclick="setWeightGoal()">Guardar</button>
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <h4>Recordatorios</h4>
+                    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                        <input type="checkbox" id="reminderEnabled" style="width:auto;">
+                        <label for="reminderEnabled">Activar recordatorio diario</label>
+                        <input type="time" id="reminderTime" style="flex-grow:1;">
+                        <button class="btn-primary" onclick="saveReminderSettings()">Guardar</button>
+                    </div>
+                </div>`;
+    }
+
+    // --- LÓGICA DE REGISTROS (CRUD) ---
+    function showForm(type) {
+        document.querySelectorAll('.toggle-buttons button').forEach(b => b.classList.remove('active'));
+        document.querySelector(`.toggle-buttons button[onclick="showForm('${type}')"]`).classList.add('active');
+
+        let formHTML = '';
+        if(type === 'bp') formHTML = `<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;"><input type="number" id="sys" placeholder="Sistólica"><input type="number" id="dia" placeholder="Diastólica"><input type="number" id="hr" placeholder="Pulso"></div>`;
+        else if (type === 'weight') formHTML = `<input type="number" id="weight" placeholder="Peso (kg)">`;
+        else if (type === 'glucose') formHTML = `<input type="number" id="glucose" placeholder="Glucosa (mg/dL)">`;
+        
+        document.getElementById('formContainer').innerHTML = formHTML + 
+            `<textarea id="recordNotes" placeholder="Añadir notas (opcional)..." style="margin-top: 10px;"></textarea>
+             <button class="btn-primary" onclick="addRecord('${type}')" style="margin-top: 10px;">Registrar</button>`;
+    }
+
+    function addRecord(type) {
+        const patient = patients[currentPatientIndex];
+        const date = new Date().toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
+        const notes = document.getElementById('recordNotes').value.trim();
+        let newRecord = { type, date, notes };
+        
+        if (type === 'bp') {
+            const sys = parseInt(document.getElementById('sys').value), dia = parseInt(document.getElementById('dia').value), hr = parseInt(document.getElementById('hr').value);
+            if (!sys || !dia || !hr) return alert("Completa todos los campos de presión.");
+            Object.assign(newRecord, { sys, dia, hr });
+        } else if (type === 'weight') {
+            const value = parseFloat(document.getElementById('weight').value);
+            if (!value) return alert("Ingresa un valor de peso.");
+            Object.assign(newRecord, { value, unit: 'kg' });
+        } else if (type === 'glucose') {
+            const value = parseInt(document.getElementById('glucose').value);
+            if (!value) return alert("Ingresa un valor de glucosa.");
+            Object.assign(newRecord, { value, unit: 'mg/dL' });
+        }
+
+        patient.records.unshift(newRecord);
+        saveData(); updateDashboard(); renderHistory(); showForm(type);
+    }
+    
+    function deleteRecord(index) {
+        if(confirm('¿Seguro que quieres eliminar este registro?')) {
+            patients[currentPatientIndex].records.splice(index, 1);
+            saveData(); updateDashboard(); renderHistory();
+        }
+    }
+
+    function openEditModal(index) {
+        currentRecordEditIndex = index;
+        const record = patients[currentPatientIndex].records[index];
+        let content = '';
+        if(record.type === 'bp') content = `<input type="number" id="editSys" value="${record.sys}" placeholder="Sistólica"><input type="number" id="editDia" value="${record.dia}" placeholder="Diastólica" style="margin-top:10px;"><input type="number" id="editHr" value="${record.hr}" placeholder="Pulso" style="margin-top:10px;">`;
+        else if (record.type === 'weight') content = `<input type="number" id="editValue" value="${record.value}" placeholder="Peso (kg)">`;
+        else if (record.type === 'glucose') content = `<input type="number" id="editValue" value="${record.value}" placeholder="Glucosa (mg/dL)">`;
+        
+        document.getElementById('editModalBody').innerHTML = content + `<textarea id="editNotes" style="margin-top:10px;">${record.notes || ''}</textarea>`;
+        openModal('editModal');
+    }
+
+    function saveRecordEdit() {
+        const record = patients[currentPatientIndex].records[currentRecordEditIndex];
+        record.notes = document.getElementById('editNotes').value.trim();
+        if (record.type === 'bp') {
+            record.sys = parseInt(document.getElementById('editSys').value);
+            record.dia = parseInt(document.getElementById('editDia').value);
+            record.hr = parseInt(document.getElementById('editHr').value);
+        } else {
+            record.value = parseFloat(document.getElementById('editValue').value);
+        }
+        saveData(); closeModal('editModal'); updateDashboard(); renderHistory();
+    }
+    
+    // --- LÓGICA DE VISTAS (RENDERIZADO) ---
+    function renderHistory() {
+        const records = patients[currentPatientIndex].records;
+        document.getElementById("history").innerHTML = records.length === 0 ? "<p style='text-align:center;'>No hay registros.</p>" : records.map((r, i) => {
+            let dataHTML = '', iconClass = '', faIcon = '';
+            if (r.type === 'bp') { dataHTML = `${r.sys}/${r.dia} mmHg | ${r.hr} lpm`; iconClass = 'bp'; faIcon = 'fa-heart-pulse'; }
+            if (r.type === 'weight') { dataHTML = `${r.value} ${r.unit}`; iconClass = 'weight'; faIcon = 'fa-weight-scale'; }
+            if (r.type === 'glucose') { dataHTML = `${r.value} ${r.unit}`; iconClass = 'glucose'; faIcon = 'fa-staff-aesculapius'; }
+            
+            return `<div class="history-entry"><div class="history-header"><div class="icon ${iconClass}"><i class="fa-solid ${faIcon}"></i></div><div class="history-details"><div class="data">${dataHTML}</div><div class="date">${r.date}</div></div><div style="margin-left:auto;"><button class="icon-btn" onclick="openEditModal(${i})"><i class="fa-solid fa-pen"></i></button><button class="icon-btn" onclick="deleteRecord(${i})"><i class="fa-solid fa-trash"></i></button></div></div>${r.notes ? `<div class="history-notes"><i class="fa-solid fa-note-sticky"></i> ${r.notes}</div>` : ''}</div>`;
+        }).join('');
     }
 
     function updateDashboard() {
-        const records = patients[currentPatientIndex].records;
-        const lastBP = records.find(r => r.type === 'bp');
-        const lastWeight = records.find(r => r.type === 'weight');
-        const statusDiv = document.getElementById("status");
-        
-        // Actualizar Presión
-        if (lastBP) {
-            document.querySelector("#lastPressure .value").innerText = `${lastBP.sys}/${lastBP.dia}`;
-            
-            let status = "Normal";
-            let statusClass = "normal";
-            if (lastBP.sys < 90 || lastBP.dia < 60) {
-                status = "Presión Baja";
-                statusClass = "baja";
-            } else if (lastBP.sys >= 140 || lastBP.dia >= 90) {
-                status = "Presión Alta";
-                statusClass = "alta";
-            }
-            statusDiv.innerText = status;
-            statusDiv.className = `status ${statusClass}`;
-            statusDiv.style.display = 'block';
-        } else {
-            document.querySelector("#lastPressure .value").innerText = "--/--";
-            statusDiv.style.display = 'none';
-        }
-
-        // Actualizar Peso
-        if(lastWeight) {
-            document.querySelector("#lastWeight .value").innerText = `${lastWeight.value} ${lastWeight.unit}`;
-        } else {
-            document.querySelector("#lastWeight .value").innerText = "-- kg";
-        }
+        const { records, weightGoal } = patients[currentPatientIndex];
+        const lastBP = records.find(r => r.type === 'bp'), lastWeight = records.find(r => r.type === 'weight'), lastGlucose = records.find(r => r.type === 'glucose');
+        document.querySelector("#lastPressure .value").innerText = lastBP ? `${lastBP.sys}/${lastBP.dia}` : '--/--';
+        document.querySelector("#lastWeight .value").innerText = lastWeight ? `${lastWeight.value} kg` : '-- kg';
+        document.querySelector("#lastGlucose .value").innerText = lastGlucose ? `${lastGlucose.value}` : '--';
+        document.querySelector("#lastWeight .goal-progress").innerText = (weightGoal && lastWeight) ? `Meta: ${weightGoal} kg` : '';
     }
 
-    // Inicialización
-    renderPatients();
+    function renderCharts() {
+        Object.values(charts).forEach(chart => chart.destroy()); // Limpiar gráficos anteriores
+        const records = [...patients[currentPatientIndex].records].reverse();
+        const bpData = records.filter(r => r.type === 'bp'), weightData = records.filter(r => r.type === 'weight'), glucoseData = records.filter(r => r.type === 'glucose');
+        const options = { responsive: true, plugins: { legend: { labels: { color: getComputedStyle(document.body).getPropertyValue('--text-color') }}}, scales: { x: { ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-muted-color') }}, y: { ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-muted-color') }}}};
+
+        if(bpData.length) charts.bp = new Chart(document.getElementById('bpChart'), { type: 'line', data: { labels: bpData.map(r => r.date.split(',')[0]), datasets: [{ label: 'Sistólica', data: bpData.map(r => r.sys), borderColor: '#dc3545', tension: 0.1 }, { label: 'Diastólica', data: bpData.map(r => r.dia), borderColor: '#007bff', tension: 0.1 }]}, options });
+        if(weightData.length) charts.weight = new Chart(document.getElementById('weightChart'), { type: 'line', data: { labels: weightData.map(r => r.date.split(',')[0]), datasets: [{ label: 'Peso (kg)', data: weightData.map(r => r.value), borderColor: '#28a745', tension: 0.1 }]}, options});
+        if(glucoseData.length) charts.glucose = new Chart(document.getElementById('glucoseChart'), { type: 'line', data: { labels: glucoseData.map(r => r.date.split(',')[0]), datasets: [{ label: 'Glucosa (mg/dL)', data: glucoseData.map(r => r.value), borderColor: '#fd7e14', tension: 0.1 }]}, options});
+    }
+    
+    function renderMeds() {
+        document.getElementById('medsList').innerHTML = patients[currentPatientIndex].medications.length === 0 ? "<p style='text-align:center;'>No hay medicamentos.</p>" : patients[currentPatientIndex].medications.map((med, i) => `<div class="history-entry"><span><strong>${med.name}</strong> - ${med.dose}</span><button class="icon-btn" onclick="deleteMed(${i})" style="float: right;"><i class="fa-solid fa-trash"></i></button></div>`).join('');
+    }
+    function addMed() {
+        const name = document.getElementById('medName').value.trim(), dose = document.getElementById('medDose').value.trim();
+        if(!name || !dose) return;
+        patients[currentPatientIndex].medications.push({name, dose});
+        saveData(); renderMeds();
+        document.getElementById('medName').value = ''; document.getElementById('medDose').value = '';
+    }
+    function deleteMed(index) { patients[currentPatientIndex].medications.splice(index, 1); saveData(); renderMeds(); }
+    
+    function renderSettings() {
+        const { weightGoal, reminders } = patients[currentPatientIndex];
+        document.getElementById('weightGoalInput').value = weightGoal || '';
+        document.getElementById('reminderEnabled').checked = reminders.enabled;
+        document.getElementById('reminderTime').value = reminders.time;
+    }
+    function setWeightGoal() {
+        patients[currentPatientIndex].weightGoal = parseFloat(document.getElementById('weightGoalInput').value) || null;
+        saveData(); updateDashboard(); alert('Meta guardada.');
+    }
+    async function saveReminderSettings() {
+        const enabled = document.getElementById('reminderEnabled').checked, time = document.getElementById('reminderTime').value;
+        if (enabled && Notification.permission !== 'granted') {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                alert('Permisos de notificación denegados.');
+                document.getElementById('reminderEnabled').checked = false; return;
+            }
+        }
+        patients[currentPatientIndex].reminders = { enabled, time };
+        saveData(); alert('Ajustes de recordatorio guardados.');
+    }
+
+    // --- MODAL Y NOTIFICACIONES ---
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    setInterval(() => {
+        if (Notification.permission !== 'granted') return;
+        const now = new Date(), currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        patients.forEach(p => {
+            if(p.reminders.enabled && p.reminders.time === currentTime) {
+                new Notification('Recordatorio de VitalTrack', { body: `Hola ${p.name}, es hora de registrar tus datos de salud.`, icon: 'icons/icon-192.png', renotify: true, tag: 'vitaltrack-reminder' });
+            }
+        });
+    }, 60000);
+
+    // --- INICIALIZACIÓN AL CARGAR LA PÁGINA ---
+    document.addEventListener('DOMContentLoaded', () => {
+        applyTheme(localStorage.getItem('vitaltrack_theme') || 'light');
+        dataMigration(); // Asegura que los datos viejos sean compatibles
+        renderPatients();
+    });
   </script>
 </body>
 </html>
