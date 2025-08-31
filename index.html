@@ -6,320 +6,287 @@
   <title>Registro de Presión Arterial</title>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
       margin: 0;
-      background: #f5f9fc;
+      font-family: Arial, sans-serif;
+      background: #f5faff;
       color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 480px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
     }
 
     header {
-      background: #e6f0fa;
-      color: #004c91;
-      padding: 1rem;
+      padding: 15px;
       text-align: center;
-      border-bottom: 2px solid #cddff2;
-    }
-
-    h1 { margin: 0; font-size: 1.5rem; }
-
-    .container { margin: 1rem; }
-
-    .card {
-      background: #ffffff;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-
-    label { display: block; margin-top: 0.5rem; }
-    input, select {
-      width: 100%;
-      padding: 0.6rem;
-      border: 1px solid #ccd9e8;
-      border-radius: 6px;
-      font-size: 1rem;
-    }
-
-    button {
-      margin-top: 1rem;
-      padding: 0.7rem;
-      border: none;
-      border-radius: 6px;
-      background: #004c91;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover { background: #0062c4; }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 0.5rem;
-    }
-    th, td {
-      border-bottom: 1px solid #e6edf5;
-      padding: 0.6rem;
-      text-align: center;
-    }
-    th { background: #f0f6fc; color: #004c91; }
-
-    .status {
+      font-size: 1.4em;
       font-weight: bold;
-      padding: 0.3rem 0.6rem;
-      border-radius: 4px;
-      color: #fff;
+      background: #e6f0fa;
+      border-bottom: 2px solid #d0e0f0;
     }
-    .normal { background: #28a745; }
-    .elevada { background: #ffc107; color: #000; }
-    .hip1 { background: #fd7e14; }
-    .hip2 { background: #dc3545; }
-    .crisis { background: #6c0a0a; }
-    .baja { background: #007bff; }
 
-    .panel {
+    .screen {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      padding: 15px;
+      overflow: hidden;
+    }
+    .screen.active {
+      display: flex;
+    }
+
+    /* Pantalla inicio */
+    .patient-list {
+      flex: 1;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+    .patient-card {
+      padding: 12px;
+      background: #f0f8ff;
+      margin: 8px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .patient-card:hover {
+      background: #dceeff;
+    }
+
+    /* Panel superior */
+    .last-reading {
       display: flex;
       justify-content: space-around;
-      background: #ffffff;
-      margin-bottom: 1rem;
-      padding: 1rem;
+      background: #eef7ff;
       border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      padding: 15px 10px;
+      margin-bottom: 10px;
     }
-
-    .panel div {
-      text-align: center;
-    }
-
-    .panel h2 {
-      margin: 0;
-      font-size: 1rem;
-      color: #004c91;
-    }
-
-    .panel p {
-      margin: 0.3rem 0 0;
-      font-size: 1.1rem;
+    .last-reading div {
+      font-size: 2em;
       font-weight: bold;
+      color: #004080;
+    }
+    .patient-name {
+      text-align: center;
+      font-size: 0.9em;
+      color: #444;
+      margin-bottom: 15px;
+      word-break: break-word;
     }
 
-    .sugerencias {
-      margin-top: 1rem;
-      padding: 0.8rem;
-      border-radius: 8px;
+    /* Inputs */
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 6px 0;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 1em;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #0077cc;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1em;
+      margin-top: 8px;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+
+    /* Estado */
+    .status {
+      margin-top: 12px;
+      font-weight: bold;
+      text-align: center;
+      font-size: 1.1em;
+    }
+
+    /* Sugerencias desplegable */
+    details {
+      margin-top: 10px;
+      background: #f0f8ff;
+      border-radius: 6px;
+      padding: 10px;
+    }
+    details summary {
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* Historial */
+    .history {
+      margin-top: 10px;
+      flex: 1;
+      overflow-y: auto;
+    }
+    .history-entry {
       background: #f9f9f9;
-      display: none;
+      padding: 8px;
+      margin-bottom: 6px;
+      border-radius: 6px;
+      font-size: 0.9em;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Registro de Presión Arterial</h1>
-  </header>
+  <div class="app">
+    <header>Registro de Presión Arterial</header>
 
-  <!-- Pantalla de inicio -->
-  <div id="pantallaInicio" class="container">
-    <div class="card">
-      <h2>Registrar Paciente</h2>
-      <label for="nombrePaciente">Nombre</label>
-      <input type="text" id="nombrePaciente">
-      <label for="edadPaciente">Edad</label>
-      <input type="number" id="edadPaciente">
-      <button onclick="registrarPaciente()">Agregar Paciente</button>
+    <!-- Pantalla inicio -->
+    <div id="homeScreen" class="screen active">
+      <h3>Pacientes</h3>
+      <div class="patient-list" id="patientList"></div>
+      <input type="text" id="newPatientName" placeholder="Nombre del paciente">
+      <button onclick="addPatient()">Agregar Paciente</button>
     </div>
 
-    <div class="card">
-      <h2>Seleccionar Paciente</h2>
-      <select id="selectPaciente"></select>
-      <button onclick="entrarPaciente()">Entrar</button>
-    </div>
-  </div>
-
-  <!-- Pantalla del paciente -->
-  <div id="pantallaPaciente" class="container" style="display:none;">
-    <button onclick="volverInicio()">⬅ Volver</button>
-    <h2 id="tituloPaciente"></h2>
-
-    <!-- Panel último registro -->
-    <div class="panel">
-      <div>
-        <h2>Sistólica</h2>
-        <p id="lastSys">-</p>
+    <!-- Pantalla paciente -->
+    <div id="patientScreen" class="screen">
+      <div class="last-reading" id="lastReading">
+        <div>--</div>
+        <div>--</div>
+        <div>--</div>
       </div>
-      <div>
-        <h2>Diastólica</h2>
-        <p id="lastDia">-</p>
-      </div>
-      <div>
-        <h2>Pulso</h2>
-        <p id="lastPul">-</p>
-      </div>
-    </div>
+      <div class="patient-name" id="patientName"></div>
 
-    <!-- Registro de nueva toma -->
-    <div class="card">
-      <h2>Nueva Toma</h2>
-      <label for="sistolica">Sistólica (mmHg)</label>
-      <input type="number" id="sistolica">
-      <label for="diastolica">Diastólica (mmHg)</label>
-      <input type="number" id="diastolica">
-      <label for="pulso">Pulso (lpm)</label>
-      <input type="number" id="pulso">
-      <button onclick="guardarToma()">Guardar Toma</button>
+      <input type="number" id="sys" placeholder="Sistólica (mmHg)">
+      <input type="number" id="dia" placeholder="Diastólica (mmHg)">
+      <input type="number" id="hr" placeholder="Pulso (lpm)">
+      <button onclick="addReading()">Registrar Toma</button>
 
-      <div class="sugerencias" id="sugerencias"></div>
-    </div>
+      <div class="status" id="status"></div>
+      <details id="suggestionsBlock" style="display:none;">
+        <summary>Ver sugerencias</summary>
+        <div id="suggestions"></div>
+      </details>
 
-    <!-- Historial -->
-    <div class="card">
-      <h2>Historial</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Sistólica</th>
-            <th>Diastólica</th>
-            <th>Pulso</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody id="tablaHistorial"></tbody>
-      </table>
+      <h4>Historial</h4>
+      <div class="history" id="history"></div>
+      <button onclick="backHome()">Regresar</button>
     </div>
   </div>
 
   <script>
-    let pacienteActivo = null;
+    let patients = JSON.parse(localStorage.getItem("patients")) || [];
+    let currentPatientIndex = null;
 
-    function getPacientes() {
-      return JSON.parse(localStorage.getItem("pacientes")) || [];
-    }
-    function savePacientes(pacientes) {
-      localStorage.setItem("pacientes", JSON.stringify(pacientes));
+    function saveData() {
+      localStorage.setItem("patients", JSON.stringify(patients));
     }
 
-    function registrarPaciente() {
-      let nombre = document.getElementById("nombrePaciente").value.trim();
-      let edad = document.getElementById("edadPaciente").value.trim();
-      if (!nombre || !edad) {
-        alert("Ingrese nombre y edad.");
-        return;
-      }
-      let pacientes = getPacientes();
-      let id = Date.now();
-      pacientes.push({ id, nombre, edad, tomas: [] });
-      savePacientes(pacientes);
-      document.getElementById("nombrePaciente").value = "";
-      document.getElementById("edadPaciente").value = "";
-      cargarPacientes();
-    }
-
-    function cargarPacientes() {
-      let pacientes = getPacientes();
-      let select = document.getElementById("selectPaciente");
-      select.innerHTML = "<option value=''>-- Seleccione --</option>";
-      pacientes.forEach(p => {
-        let opt = document.createElement("option");
-        opt.value = p.id;
-        opt.textContent = `${p.nombre} (${p.edad} años)`;
-        select.appendChild(opt);
+    function renderPatients() {
+      const list = document.getElementById("patientList");
+      list.innerHTML = "";
+      patients.forEach((p, i) => {
+        const div = document.createElement("div");
+        div.className = "patient-card";
+        div.innerText = p.name;
+        div.onclick = () => openPatient(i);
+        list.appendChild(div);
       });
     }
 
-    function entrarPaciente() {
-      let id = document.getElementById("selectPaciente").value;
-      if (!id) { alert("Seleccione un paciente."); return; }
-      pacienteActivo = parseInt(id);
-      let paciente = getPacientes().find(p => p.id === pacienteActivo);
-      document.getElementById("tituloPaciente").innerText = `${paciente.nombre} (${paciente.edad} años)`;
-      document.getElementById("pantallaInicio").style.display = "none";
-      document.getElementById("pantallaPaciente").style.display = "block";
-      cargarHistorial();
+    function addPatient() {
+      const name = document.getElementById("newPatientName").value.trim();
+      if (!name) return;
+      patients.push({ name, readings: [] });
+      saveData();
+      renderPatients();
+      document.getElementById("newPatientName").value = "";
     }
 
-    function volverInicio() {
-      pacienteActivo = null;
-      document.getElementById("pantallaPaciente").style.display = "none";
-      document.getElementById("pantallaInicio").style.display = "block";
-      cargarPacientes();
+    function openPatient(index) {
+      currentPatientIndex = index;
+      document.getElementById("homeScreen").classList.remove("active");
+      document.getElementById("patientScreen").classList.add("active");
+      document.getElementById("patientName").innerText = patients[index].name;
+      renderHistory();
     }
 
-    function clasificarPresion(sys, dia) {
-      if (sys < 90 || dia < 60) return {estado:"Baja", clase:"baja", sugerencia:"Posible hipotensión. Hidrátese, evite levantarse bruscamente y consulte a un médico si persiste."};
-      if (sys < 120 && dia < 80) return {estado:"Normal", clase:"normal", sugerencia:"Presión normal. Mantenga hábitos saludables: dieta balanceada, ejercicio regular y control de peso."};
-      if (sys >= 120 && sys <= 129 && dia < 80) return {estado:"Elevada", clase:"elevada", sugerencia:"Presión un poco elevada. Reduzca sal, evite estrés y vigile regularmente sus cifras."};
-      if ((sys >= 130 && sys <= 139) || (dia >= 80 && dia <= 89)) return {estado:"Hipertensión Grado 1", clase:"hip1", sugerencia:"Controle su dieta, reduzca alcohol, tabaco y consulte a su médico para seguimiento."};
-      if ((sys >= 140 && sys <= 180) || (dia >= 90 && dia <= 120)) return {estado:"Hipertensión Grado 2", clase:"hip2", sugerencia:"Riesgo alto. Busque atención médica para tratamiento y control inmediato."};
-      if (sys > 180 || dia > 120) return {estado:"Crisis Hipertensiva", clase:"crisis", sugerencia:"Emergencia médica. Acuda de inmediato a un hospital."};
-      return {estado:"Indefinido", clase:"", sugerencia:"Revise los valores."};
+    function backHome() {
+      document.getElementById("patientScreen").classList.remove("active");
+      document.getElementById("homeScreen").classList.add("active");
+      currentPatientIndex = null;
     }
 
-    function guardarToma() {
-      if (!pacienteActivo) { alert("No hay paciente activo."); return; }
-      let sys = parseInt(document.getElementById("sistolica").value);
-      let dia = parseInt(document.getElementById("diastolica").value);
-      let pulso = parseInt(document.getElementById("pulso").value);
-      if (!sys || !dia || !pulso) {
-        alert("Ingrese todos los valores.");
-        return;
-      }
-      let estado = clasificarPresion(sys, dia);
+    function addReading() {
+      const sys = parseInt(document.getElementById("sys").value);
+      const dia = parseInt(document.getElementById("dia").value);
+      const hr = parseInt(document.getElementById("hr").value);
+      if (!sys || !dia || !hr) return;
 
-      let pacientes = getPacientes();
-      let paciente = pacientes.find(p => p.id === pacienteActivo);
-      paciente.tomas.push({
-        fecha: new Date().toLocaleString(),
-        sistolica: sys,
-        diastolica: dia,
-        pulso,
-        estado
+      const reading = { sys, dia, hr, date: new Date().toLocaleString() };
+      patients[currentPatientIndex].readings.unshift(reading);
+      saveData();
+      document.getElementById("sys").value = "";
+      document.getElementById("dia").value = "";
+      document.getElementById("hr").value = "";
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const historyDiv = document.getElementById("history");
+      const readings = patients[currentPatientIndex].readings;
+      historyDiv.innerHTML = "";
+      readings.forEach(r => {
+        const div = document.createElement("div");
+        div.className = "history-entry";
+        div.innerText = `${r.date} → ${r.sys}/${r.dia} mmHg, Pulso: ${r.hr}`;
+        historyDiv.appendChild(div);
       });
-      savePacientes(pacientes);
-
-      document.getElementById("sistolica").value = "";
-      document.getElementById("diastolica").value = "";
-      document.getElementById("pulso").value = "";
-
-      cargarHistorial();
-
-      // Mostrar sugerencias
-      let sug = document.getElementById("sugerencias");
-      sug.style.display = "block";
-      sug.innerText = estado.sugerencia;
+      renderLastReading();
     }
 
-    function cargarHistorial() {
-      let pacientes = getPacientes();
-      let paciente = pacientes.find(p => p.id === pacienteActivo);
-      let tbody = document.getElementById("tablaHistorial");
-      tbody.innerHTML = "";
+    function renderLastReading() {
+      const readings = patients[currentPatientIndex].readings;
+      const panel = document.getElementById("lastReading").children;
+      const statusDiv = document.getElementById("status");
+      const suggBlock = document.getElementById("suggestionsBlock");
+      const suggDiv = document.getElementById("suggestions");
 
-      if (!paciente || paciente.tomas.length === 0) {
-        document.getElementById("lastSys").innerText = "-";
-        document.getElementById("lastDia").innerText = "-";
-        document.getElementById("lastPul").innerText = "-";
+      if (readings.length === 0) {
+        panel[0].innerText = panel[1].innerText = panel[2].innerText = "--";
+        statusDiv.innerText = "";
+        suggBlock.style.display = "none";
         return;
       }
 
-      paciente.tomas.forEach(t => {
-        let row = `<tr>
-          <td>${t.fecha}</td>
-          <td>${t.sistolica}</td>
-          <td>${t.diastolica}</td>
-          <td>${t.pulso}</td>
-          <td><span class="status ${t.estado.clase}">${t.estado.estado}</span></td>
-        </tr>`;
-        tbody.innerHTML += row;
-      });
+      const last = readings[0];
+      panel[0].innerText = last.sys;
+      panel[1].innerText = last.dia;
+      panel[2].innerText = last.hr;
 
-      // último registro al panel
-      let ultima = paciente.tomas[paciente.tomas.length - 1];
-      document.getElementById("lastSys").innerText = ultima.sistolica;
-      document.getElementById("lastDia").innerText = ultima.diastolica;
-      document.getElementById("lastPul").innerText = ultima.pulso;
+      let status = "Normal";
+      let suggestions = "Mantén un estilo de vida saludable.";
+      if (last.sys < 90 || last.dia < 60) {
+        status = "Baja";
+        suggestions = "Aumenta la hidratación, evita cambios bruscos de posición y consulta a un médico si persiste.";
+      } else if (last.sys > 140 || last.dia > 90) {
+        status = "Alta";
+        suggestions = "Reduce sal, estrés y consulta a un médico si se repite.";
+      }
+      statusDiv.innerText = "Presión " + status;
+      suggDiv.innerText = suggestions;
+      suggBlock.style.display = "block";
     }
 
-    window.onload = () => { cargarPacientes(); };
+    renderPatients();
   </script>
 </body>
 </html>
