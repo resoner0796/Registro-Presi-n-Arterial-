@@ -32,6 +32,7 @@
       --bp-normal: #28a745;
       --bp-low: #ffc107;
       --bp-high: #dc3545;
+      --bp-elevated: #ffc107;
     }
     
     .dark-mode {
@@ -50,6 +51,7 @@
       --bp-normal: #198754;
       --bp-low: #ffc107;
       --bp-high: #dc3545;
+      --bp-elevated: #ffc107;
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -167,6 +169,7 @@
     #bpIndicator.normal { background-color: var(--bp-normal); }
     #bpIndicator.low { background-color: var(--bp-low); }
     #bpIndicator.high { background-color: var(--bp-high); }
+    #bpIndicator.elevated { background-color: var(--bp-elevated); }
     
     .suggestions-container { margin-top: 15px; }
     .suggestions-container button {
@@ -209,7 +212,43 @@
         to { opacity: 1; transform: translateY(0); }
     }
     /* Fin de nuevos estilos */
-    
+
+    /* Estilos para medicamentos */
+    .med-entry {
+        background: var(--bg-color);
+        padding: 12px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+    }
+    .med-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .med-details {
+        font-size: 0.9em;
+        color: var(--text-muted-color);
+    }
+    .med-dose {
+        font-weight: 500;
+    }
+    .med-taken-btn {
+        background: var(--primary-color);
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 20px;
+        font-size: 0.8em;
+    }
+    .med-taken-history {
+        margin-top: 10px;
+        font-size: 0.8em;
+        padding-left: 15px;
+    }
+    .med-taken-history li {
+        margin-bottom: 5px;
+        color: var(--text-muted-color);
+    }
+
     /* Modal */
     .modal {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -408,11 +447,12 @@
     }
     function getChartsViewHTML() { return `<h3>Gráficas de Progreso</h3> <canvas id="bpChart"></canvas> <canvas id="weightChart" style="margin-top: 20px;"></canvas> <canvas id="glucoseChart" style="margin-top: 20px;"></canvas>`; }
     function getMedsViewHTML() {
-        return `<h3>Medicamentos Actuales</h3>
-                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                    <input type="text" id="medName" placeholder="Nombre del medicamento">
-                    <input type="text" id="medDose" placeholder="Dosis (ej. 10mg)">
-                    <button class="btn-primary" onclick="addMed()"><i class="fa-solid fa-plus"></i></button>
+        return `<h3>Control de Medicamentos</h3>
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                    <input type="text" id="medName" placeholder="Nombre del medicamento" style="width: 100%;">
+                    <input type="text" id="medDose" placeholder="Dosis (ej. 10mg)" style="width: 100%;">
+                    <input type="text" id="medFrequency" placeholder="Frecuencia (ej. cada 8 horas)" style="width: 100%;">
+                    <button class="btn-primary" onclick="addMed()"><i class="fa-solid fa-plus"></i> Añadir medicamento</button>
                 </div>
                 <div id="medsList"></div>`;
     }
@@ -505,11 +545,17 @@
 
     function getBloodPressureCategory(sys, dia) {
         if (sys < 90 || dia < 60) {
-            return { category: 'low', color: 'var(--bp-low)', text: 'Baja' };
-        } else if (sys <= 120 && dia <= 80) {
-            return { category: 'normal', color: 'var(--bp-normal)', text: 'Normal' };
+            return { category: 'low', text: 'Baja' };
+        } else if (sys < 120 && dia < 80) {
+            return { category: 'normal', text: 'Normal' };
+        } else if (sys <= 129 && dia < 80) {
+            return { category: 'elevated', text: 'Normal-Alta' };
+        } else if ((sys >= 130 && sys <= 139) || (dia >= 80 && dia <= 89)) {
+            return { category: 'high', text: 'Hipertensión Etapa 1' };
+        } else if (sys >= 140 || dia >= 90) {
+            return { category: 'high', text: 'Hipertensión Etapa 2' };
         } else {
-            return { category: 'high', color: 'var(--bp-high)', text: 'Alta' };
+            return { category: 'high', text: 'Crisis Hipertensiva' };
         }
     }
 
@@ -521,13 +567,18 @@
                 "Evite cambios de posición bruscos (sentarse, levantarse).",
                 "Considere aumentar el consumo de sal si su médico lo aprueba."
             ];
+        } else if (category === 'elevated') {
+            return [
+                "Realice cambios en su estilo de vida, como mejorar la dieta y hacer ejercicio.",
+                "Reduzca el consumo de sal.",
+                "Limite el estrés y duerma lo suficiente."
+            ];
         } else if (category === 'high') {
             return [
-                "Reduzca el consumo de sal y alimentos procesados.",
-                "Aumente la ingesta de frutas, verduras y granos integrales.",
-                "Realice actividad física regular (consulte a su médico).",
-                "Limite el consumo de alcohol y cafeína.",
-                "Practique técnicas de relajación como la meditación o el yoga."
+                "Es recomendable visitar a un médico para evaluar su estado.",
+                "Siga un plan de alimentación DASH (Dietary Approaches to Stop Hypertension).",
+                "Reduzca el consumo de sal y limite el alcohol y el tabaco.",
+                "Mantenga la actividad física regular y controle el estrés."
             ];
         } else {
             return [
@@ -629,16 +680,66 @@
     }
     
     function renderMeds() {
-        document.getElementById('medsList').innerHTML = patients[currentPatientIndex].medications.length === 0 ? "<p style='text-align:center;'>No hay medicamentos.</p>" : patients[currentPatientIndex].medications.map((med, i) => `<div class="history-entry"><span><strong>${med.name}</strong> - ${med.dose}</span><button class="icon-btn" onclick="deleteMed(${i})" style="float: right;"><i class="fa-solid fa-trash"></i></button></div>`).join('');
+        const medsList = document.getElementById('medsList');
+        const meds = patients[currentPatientIndex].medications;
+        medsList.innerHTML = meds.length === 0 ? "<p style='text-align:center;'>No hay medicamentos registrados.</p>" : meds.map((med, i) => `
+            <div class="med-entry">
+                <div class="med-header">
+                    <div>
+                        <strong>${med.name}</strong> - <span class="med-dose">${med.dose}</span>
+                        <div class="med-details">${med.frequency}</div>
+                    </div>
+                    <div>
+                        <button class="med-taken-btn" onclick="logMedTaken(${i})">Tomado</button>
+                        <button class="icon-btn" onclick="deleteMed(${i})"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+                ${med.takenDates.length > 0 ? `
+                    <div class="med-taken-history">
+                        <strong>Historial de tomas:</strong>
+                        <ul>
+                            ${med.takenDates.slice(0, 3).map(date => `<li><i class="fa-solid fa-clock"></i> ${date}</li>`).join('')}
+                        </ul>
+                        ${med.takenDates.length > 3 ? `<div>... y más</div>` : ''}
+                    </div>` : ''}
+            </div>
+        `).join('');
     }
+
     function addMed() {
-        const name = document.getElementById('medName').value.trim(), dose = document.getElementById('medDose').value.trim();
-        if(!name || !dose) return;
-        patients[currentPatientIndex].medications.push({name, dose});
-        saveData(); renderMeds();
-        document.getElementById('medName').value = ''; document.getElementById('medDose').value = '';
+        const name = document.getElementById('medName').value.trim();
+        const dose = document.getElementById('medDose').value.trim();
+        const frequency = document.getElementById('medFrequency').value.trim();
+        
+        if(!name || !dose) return alert("Por favor, complete al menos el nombre y la dosis del medicamento.");
+        
+        patients[currentPatientIndex].medications.push({
+            name, 
+            dose, 
+            frequency,
+            takenDates: []
+        });
+        saveData(); 
+        renderMeds();
+        
+        document.getElementById('medName').value = ''; 
+        document.getElementById('medDose').value = '';
+        document.getElementById('medFrequency').value = '';
     }
-    function deleteMed(index) { patients[currentPatientIndex].medications.splice(index, 1); saveData(); renderMeds(); }
+
+    function deleteMed(index) { 
+        patients[currentPatientIndex].medications.splice(index, 1); 
+        saveData(); 
+        renderMeds(); 
+    }
+
+    function logMedTaken(medIndex) {
+        const now = new Date().toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
+        patients[currentPatientIndex].medications[medIndex].takenDates.unshift(now);
+        saveData();
+        renderMeds();
+        alert('Toma registrada.');
+    }
     
     function renderSettings() {
         const { weightGoal, reminders } = patients[currentPatientIndex];
