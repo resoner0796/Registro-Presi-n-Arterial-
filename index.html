@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro de Presión Arterial</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      background: #f5f9fc;
+      color: #333;
+    }
+
+    header {
+      background: #e6f0fa;
+      color: #004c91;
+      padding: 1rem;
+      text-align: center;
+      border-bottom: 2px solid #cddff2;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .panel {
+      display: flex;
+      justify-content: space-around;
+      background: #ffffff;
+      margin: 1rem;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .panel div {
+      text-align: center;
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      color: #004c91;
+    }
+
+    .panel p {
+      margin: 0.3rem 0 0;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+
+    .formulario {
+      background: #ffffff;
+      margin: 1rem;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .formulario label {
+      display: block;
+      margin: 0.5rem 0 0.2rem;
+      font-weight: 500;
+    }
+
+    .formulario input {
+      width: 100%;
+      padding: 0.6rem;
+      border: 1px solid #ccd9e8;
+      border-radius: 6px;
+      font-size: 1rem;
+      outline: none;
+      transition: border 0.3s;
+    }
+
+    .formulario input:focus {
+      border: 1px solid #004c91;
+    }
+
+    .formulario button {
+      margin-top: 1rem;
+      width: 100%;
+      padding: 0.7rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 6px;
+      background: #004c91;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .formulario button:hover {
+      background: #0062c4;
+    }
+
+    .historial {
+      margin: 1rem;
+      padding: 1rem;
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: center;
+    }
+
+    table th, table td {
+      padding: 0.6rem;
+      border-bottom: 1px solid #e6edf5;
+    }
+
+    table th {
+      background: #f0f6fc;
+      color: #004c91;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Registro de Presión Arterial</h1>
+  </header>
+
+  <section class="panel">
+    <div>
+      <h2>Sistólica</h2>
+      <p id="lastSys">-</p>
+    </div>
+    <div>
+      <h2>Diastólica</h2>
+      <p id="lastDia">-</p>
+    </div>
+    <div>
+      <h2>Pulso</h2>
+      <p id="lastPul">-</p>
+    </div>
+  </section>
+
+  <section class="formulario">
+    <h2>Registrar Nueva Toma</h2>
+    <label for="sistolica">Sistólica (mmHg)</label>
+    <input type="number" id="sistolica" required>
+
+    <label for="diastolica">Diastólica (mmHg)</label>
+    <input type="number" id="diastolica" required>
+
+    <label for="pulso">Pulso (lpm)</label>
+    <input type="number" id="pulso" required>
+
+    <button onclick="guardarToma()">Guardar Toma</button>
+  </section>
+
+  <section class="historial">
+    <h2>Historial</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Sistólica</th>
+          <th>Diastólica</th>
+          <th>Pulso</th>
+        </tr>
+      </thead>
+      <tbody id="tablaHistorial">
+      </tbody>
+    </table>
+  </section>
+
+  <script>
+    function cargarHistorial() {
+      let historial = JSON.parse(localStorage.getItem("tomas")) || [];
+      let tabla = document.getElementById("tablaHistorial");
+      tabla.innerHTML = "";
+
+      historial.forEach((toma, i) => {
+        let row = `<tr>
+          <td>${toma.fecha}</td>
+          <td>${toma.sistolica}</td>
+          <td>${toma.diastolica}</td>
+          <td>${toma.pulso}</td>
+        </tr>`;
+        tabla.innerHTML += row;
+      });
+
+      if (historial.length > 0) {
+        let ultima = historial[historial.length - 1];
+        document.getElementById("lastSys").innerText = ultima.sistolica;
+        document.getElementById("lastDia").innerText = ultima.diastolica;
+        document.getElementById("lastPul").innerText = ultima.pulso;
+      }
+    }
+
+    function guardarToma() {
+      let sistolica = document.getElementById("sistolica").value;
+      let diastolica = document.getElementById("diastolica").value;
+      let pulso = document.getElementById("pulso").value;
+
+      if (!sistolica || !diastolica || !pulso) {
+        alert("Por favor complete todos los campos.");
+        return;
+      }
+
+      let fecha = new Date().toLocaleString();
+
+      let toma = {
+        fecha,
+        sistolica,
+        diastolica,
+        pulso
+      };
+
+      let historial = JSON.parse(localStorage.getItem("tomas")) || [];
+      historial.push(toma);
+      localStorage.setItem("tomas", JSON.stringify(historial));
+
+      document.getElementById("sistolica").value = "";
+      document.getElementById("diastolica").value = "";
+      document.getElementById("pulso").value = "";
+
+      cargarHistorial();
+    }
+
+    window.onload = cargarHistorial;
+  </script>
+</body>
+</html>
