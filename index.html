@@ -6,7 +6,7 @@
   <title>Registro de Presión Arterial</title>
   <style>
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Segoe UI', sans-serif;
       margin: 0;
       background: #f5f9fc;
       color: #333;
@@ -20,106 +20,62 @@
       border-bottom: 2px solid #cddff2;
     }
 
-    h1 {
-      margin: 0;
-      font-size: 1.5rem;
-    }
+    h1 { margin: 0; font-size: 1.5rem; }
 
-    .panel {
-      display: flex;
-      justify-content: space-around;
+    .container { margin: 1rem; }
+
+    .card {
       background: #ffffff;
-      margin: 1rem;
       padding: 1rem;
+      margin-bottom: 1rem;
       border-radius: 10px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
 
-    .panel div {
-      text-align: center;
-    }
-
-    .panel h2 {
-      margin: 0;
-      font-size: 1.2rem;
-      color: #004c91;
-    }
-
-    .panel p {
-      margin: 0.3rem 0 0;
-      font-size: 1.1rem;
-      font-weight: bold;
-    }
-
-    .formulario {
-      background: #ffffff;
-      margin: 1rem;
-      padding: 1rem;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-
-    .formulario label {
-      display: block;
-      margin: 0.5rem 0 0.2rem;
-      font-weight: 500;
-    }
-
-    .formulario input {
+    label { display: block; margin-top: 0.5rem; }
+    input, select {
       width: 100%;
       padding: 0.6rem;
       border: 1px solid #ccd9e8;
       border-radius: 6px;
       font-size: 1rem;
-      outline: none;
-      transition: border 0.3s;
     }
 
-    .formulario input:focus {
-      border: 1px solid #004c91;
-    }
-
-    .formulario button {
+    button {
       margin-top: 1rem;
-      width: 100%;
       padding: 0.7rem;
-      font-size: 1rem;
       border: none;
       border-radius: 6px;
       background: #004c91;
       color: white;
       cursor: pointer;
-      transition: background 0.3s;
     }
-
-    .formulario button:hover {
-      background: #0062c4;
-    }
-
-    .historial {
-      margin: 1rem;
-      padding: 1rem;
-      background: #ffffff;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      overflow-x: auto;
-    }
+    button:hover { background: #0062c4; }
 
     table {
       width: 100%;
       border-collapse: collapse;
+      margin-top: 0.5rem;
+    }
+    th, td {
+      border-bottom: 1px solid #e6edf5;
+      padding: 0.6rem;
       text-align: center;
     }
+    th { background: #f0f6fc; color: #004c91; }
 
-    table th, table td {
-      padding: 0.6rem;
-      border-bottom: 1px solid #e6edf5;
+    .status {
+      font-weight: bold;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      color: #fff;
     }
-
-    table th {
-      background: #f0f6fc;
-      color: #004c91;
-    }
+    .normal { background: #28a745; }
+    .elevada { background: #ffc107; color: #000; }
+    .hip1 { background: #fd7e14; }
+    .hip2 { background: #dc3545; }
+    .crisis { background: #6c0a0a; }
+    .baja { background: #007bff; }
   </style>
 </head>
 <body>
@@ -127,106 +83,155 @@
     <h1>Registro de Presión Arterial</h1>
   </header>
 
-  <section class="panel">
-    <div>
-      <h2>Sistólica</h2>
-      <p id="lastSys">-</p>
+  <div class="container">
+    <!-- Gestión de pacientes -->
+    <div class="card">
+      <h2>Registrar Paciente</h2>
+      <label for="nombrePaciente">Nombre</label>
+      <input type="text" id="nombrePaciente">
+      <label for="edadPaciente">Edad</label>
+      <input type="number" id="edadPaciente">
+      <button onclick="registrarPaciente()">Agregar Paciente</button>
     </div>
-    <div>
-      <h2>Diastólica</h2>
-      <p id="lastDia">-</p>
+
+    <div class="card">
+      <h2>Seleccionar Paciente</h2>
+      <select id="selectPaciente" onchange="cargarHistorial()"></select>
     </div>
-    <div>
-      <h2>Pulso</h2>
-      <p id="lastPul">-</p>
+
+    <!-- Registro de tomas -->
+    <div class="card">
+      <h2>Registrar Toma</h2>
+      <label for="sistolica">Sistólica (mmHg)</label>
+      <input type="number" id="sistolica">
+      <label for="diastolica">Diastólica (mmHg)</label>
+      <input type="number" id="diastolica">
+      <label for="pulso">Pulso (lpm)</label>
+      <input type="number" id="pulso">
+      <button onclick="guardarToma()">Guardar Toma</button>
     </div>
-  </section>
 
-  <section class="formulario">
-    <h2>Registrar Nueva Toma</h2>
-    <label for="sistolica">Sistólica (mmHg)</label>
-    <input type="number" id="sistolica" required>
-
-    <label for="diastolica">Diastólica (mmHg)</label>
-    <input type="number" id="diastolica" required>
-
-    <label for="pulso">Pulso (lpm)</label>
-    <input type="number" id="pulso" required>
-
-    <button onclick="guardarToma()">Guardar Toma</button>
-  </section>
-
-  <section class="historial">
-    <h2>Historial</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Sistólica</th>
-          <th>Diastólica</th>
-          <th>Pulso</th>
-        </tr>
-      </thead>
-      <tbody id="tablaHistorial">
-      </tbody>
-    </table>
-  </section>
+    <!-- Historial -->
+    <div class="card">
+      <h2>Historial del Paciente</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Sistólica</th>
+            <th>Diastólica</th>
+            <th>Pulso</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tablaHistorial"></tbody>
+      </table>
+    </div>
+  </div>
 
   <script>
-    function cargarHistorial() {
-      let historial = JSON.parse(localStorage.getItem("tomas")) || [];
-      let tabla = document.getElementById("tablaHistorial");
-      tabla.innerHTML = "";
+    function getPacientes() {
+      return JSON.parse(localStorage.getItem("pacientes")) || [];
+    }
 
-      historial.forEach((toma, i) => {
-        let row = `<tr>
-          <td>${toma.fecha}</td>
-          <td>${toma.sistolica}</td>
-          <td>${toma.diastolica}</td>
-          <td>${toma.pulso}</td>
-        </tr>`;
-        tabla.innerHTML += row;
-      });
+    function savePacientes(pacientes) {
+      localStorage.setItem("pacientes", JSON.stringify(pacientes));
+    }
 
-      if (historial.length > 0) {
-        let ultima = historial[historial.length - 1];
-        document.getElementById("lastSys").innerText = ultima.sistolica;
-        document.getElementById("lastDia").innerText = ultima.diastolica;
-        document.getElementById("lastPul").innerText = ultima.pulso;
+    function registrarPaciente() {
+      let nombre = document.getElementById("nombrePaciente").value.trim();
+      let edad = document.getElementById("edadPaciente").value.trim();
+      if (!nombre || !edad) {
+        alert("Ingrese nombre y edad.");
+        return;
       }
+      let pacientes = getPacientes();
+      let id = Date.now();
+      pacientes.push({ id, nombre, edad, tomas: [] });
+      savePacientes(pacientes);
+      document.getElementById("nombrePaciente").value = "";
+      document.getElementById("edadPaciente").value = "";
+      cargarPacientes();
+    }
+
+    function cargarPacientes() {
+      let pacientes = getPacientes();
+      let select = document.getElementById("selectPaciente");
+      select.innerHTML = "<option value=''>-- Seleccione --</option>";
+      pacientes.forEach(p => {
+        let opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = `${p.nombre} (${p.edad} años)`;
+        select.appendChild(opt);
+      });
+    }
+
+    function clasificarPresion(sys, dia) {
+      if (sys < 90 || dia < 60) return {estado:"Baja", clase:"baja"};
+      if (sys < 120 && dia < 80) return {estado:"Normal", clase:"normal"};
+      if (sys >= 120 && sys <= 129 && dia < 80) return {estado:"Elevada", clase:"elevada"};
+      if ((sys >= 130 && sys <= 139) || (dia >= 80 && dia <= 89)) return {estado:"Hipertensión Grado 1", clase:"hip1"};
+      if ((sys >= 140 && sys <= 180) || (dia >= 90 && dia <= 120)) return {estado:"Hipertensión Grado 2", clase:"hip2"};
+      if (sys > 180 || dia > 120) return {estado:"Crisis Hipertensiva", clase:"crisis"};
+      return {estado:"Indefinido", clase:""};
     }
 
     function guardarToma() {
-      let sistolica = document.getElementById("sistolica").value;
-      let diastolica = document.getElementById("diastolica").value;
-      let pulso = document.getElementById("pulso").value;
-
-      if (!sistolica || !diastolica || !pulso) {
-        alert("Por favor complete todos los campos.");
+      let select = document.getElementById("selectPaciente");
+      let id = select.value;
+      if (!id) {
+        alert("Seleccione un paciente primero.");
         return;
       }
+      let sys = parseInt(document.getElementById("sistolica").value);
+      let dia = parseInt(document.getElementById("diastolica").value);
+      let pulso = parseInt(document.getElementById("pulso").value);
+      if (!sys || !dia || !pulso) {
+        alert("Ingrese todos los valores.");
+        return;
+      }
+      let estado = clasificarPresion(sys, dia);
 
-      let fecha = new Date().toLocaleString();
-
-      let toma = {
-        fecha,
-        sistolica,
-        diastolica,
-        pulso
-      };
-
-      let historial = JSON.parse(localStorage.getItem("tomas")) || [];
-      historial.push(toma);
-      localStorage.setItem("tomas", JSON.stringify(historial));
+      let pacientes = getPacientes();
+      let paciente = pacientes.find(p => p.id == id);
+      paciente.tomas.push({
+        fecha: new Date().toLocaleString(),
+        sistolica: sys,
+        diastolica: dia,
+        pulso,
+        estado
+      });
+      savePacientes(pacientes);
 
       document.getElementById("sistolica").value = "";
       document.getElementById("diastolica").value = "";
       document.getElementById("pulso").value = "";
-
       cargarHistorial();
     }
 
-    window.onload = cargarHistorial;
+    function cargarHistorial() {
+      let select = document.getElementById("selectPaciente");
+      let id = select.value;
+      let tbody = document.getElementById("tablaHistorial");
+      tbody.innerHTML = "";
+      if (!id) return;
+      let pacientes = getPacientes();
+      let paciente = pacientes.find(p => p.id == id);
+      if (!paciente) return;
+
+      paciente.tomas.forEach(t => {
+        let row = `<tr>
+          <td>${t.fecha}</td>
+          <td>${t.sistolica}</td>
+          <td>${t.diastolica}</td>
+          <td>${t.pulso}</td>
+          <td><span class="status ${t.estado.clase}">${t.estado.estado}</span></td>
+        </tr>`;
+        tbody.innerHTML += row;
+      });
+    }
+
+    window.onload = () => { cargarPacientes(); };
   </script>
 </body>
 </html>
