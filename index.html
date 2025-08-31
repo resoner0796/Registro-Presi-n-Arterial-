@@ -33,6 +33,10 @@
       --bp-low: #ffc107;
       --bp-high: #dc3545;
       --bp-elevated: #ffc107;
+      
+      --glucose-normal: #28a745;
+      --glucose-low: #ffc107;
+      --glucose-high: #dc3545;
     }
     
     .dark-mode {
@@ -52,6 +56,10 @@
       --bp-low: #ffc107;
       --bp-high: #dc3545;
       --bp-elevated: #ffc107;
+      
+      --glucose-normal: #198754;
+      --glucose-low: #ffc107;
+      --glucose-high: #dc3545;
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -156,8 +164,8 @@
     }
     .settings-group { margin-bottom: 25px; }
     
-    /* Estilos nuevos para el indicador de presión y sugerencias */
-    #bpIndicator {
+    /* Estilos nuevos para el indicador y sugerencias */
+    #bpIndicator, #glucoseIndicator {
         display: none;
         padding: 10px 15px;
         border-radius: 8px;
@@ -166,10 +174,10 @@
         text-align: center;
         color: #fff;
     }
-    #bpIndicator.normal { background-color: var(--bp-normal); }
-    #bpIndicator.low { background-color: var(--bp-low); }
-    #bpIndicator.high { background-color: var(--bp-high); }
-    #bpIndicator.elevated { background-color: var(--bp-elevated); }
+    #bpIndicator.normal, #glucoseIndicator.normal { background-color: var(--bp-normal); }
+    #bpIndicator.low, #glucoseIndicator.low { background-color: var(--bp-low); }
+    #bpIndicator.high, #glucoseIndicator.high { background-color: var(--bp-high); }
+    #bpIndicator.elevated, #glucoseIndicator.elevated { background-color: var(--bp-elevated); }
     
     .suggestions-container { margin-top: 15px; }
     .suggestions-container button {
@@ -247,6 +255,22 @@
     .med-taken-history li {
         margin-bottom: 5px;
         color: var(--text-muted-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .med-taken-history li .history-actions .icon-btn {
+        font-size: 0.9em;
+    }
+    
+    .med-actions {
+        display: flex;
+        gap: 5px;
+        margin-left: auto;
+    }
+    .med-actions .icon-btn {
+        font-size: 0.9em;
+        padding: 0;
     }
 
     /* Modal */
@@ -309,6 +333,31 @@
         </div>
     </div>
   </div>
+
+  <div id="editMedModal" class="modal">
+    <div class="modal-content">
+        <h3>Editar Medicamento</h3>
+        <input type="text" id="editMedName" placeholder="Nombre">
+        <input type="text" id="editMedDose" placeholder="Dosis" style="margin-top:10px;">
+        <input type="text" id="editMedFrequency" placeholder="Frecuencia" style="margin-top:10px;">
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn-secondary" onclick="closeModal('editMedModal')">Cancelar</button>
+            <button class="btn-primary" onclick="saveMedEdit()">Guardar</button>
+        </div>
+    </div>
+  </div>
+
+  <div id="editTakenModal" class="modal">
+    <div class="modal-content">
+        <h3>Editar Toma</h3>
+        <input type="date" id="editTakenDate">
+        <input type="time" id="editTakenTime" style="margin-top:10px;">
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn-secondary" onclick="closeModal('editTakenModal')">Cancelar</button>
+            <button class="btn-primary" onclick="saveTakenEdit()">Guardar</button>
+        </div>
+    </div>
+  </div>
   
   <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-firestore-compat.js"></script>
@@ -335,6 +384,8 @@
     let patients = [];
     let currentPatientId = null;
     let currentRecordEditIndex = null;
+    let currentMedEditIndex = null;
+    let currentTakenEdit = {};
     let charts = {};
     
     // --- LÓGICA DEL TEMA (MODO OSCURO/CLARO) ---
@@ -357,24 +408,6 @@
     }
 
     // --- FUNCIONES DE GUARDADO Y RENDERIZADO ---
-    // Función de migración (descomentar y usar una vez para migrar datos de localStorage)
-    /*
-    async function migrateLocalStorageToFirebase() {
-      const storedPatients = JSON.parse(localStorage.getItem("vitaltrack_patients"));
-      if (storedPatients && storedPatients.length > 0) {
-        console.log("Migrating data from localStorage to Firebase...");
-        for (const p of storedPatients) {
-          await db.collection("patients").add(p);
-        }
-        localStorage.removeItem("vitaltrack_patients");
-        console.log("Migration complete. localStorage data has been removed.");
-      }
-    }
-    */
-    
-    // Función de guardado no necesaria, la API de Firebase lo maneja
-    // function saveData() {}
-
     async function renderPatients() {
         const patientList = document.getElementById("patientList");
         patientList.innerHTML = '';
@@ -517,7 +550,7 @@
                 </div>
                 <div id="bpIndicator"></div>
                 <div class="suggestions-container">
-                    <button onclick="toggleSuggestions()">
+                    <button onclick="toggleSuggestions('bp')">
                         Sugerencias <i class="fa-solid fa-chevron-down" id="suggestionsToggleIcon"></i>
                     </button>
                     <div id="suggestionsPanel"></div>
@@ -525,7 +558,15 @@
         } else if (type === 'weight') {
             formHTML = `<input type="number" id="weight" placeholder="Peso (kg)">`;
         } else if (type === 'glucose') {
-            formHTML = `<input type="number" id="glucose" placeholder="Glucosa (mg/dL)">`;
+            formHTML = `
+                <input type="number" id="glucose" placeholder="Glucosa (mg/dL)" oninput="checkGlucose()">
+                <div id="glucoseIndicator"></div>
+                <div class="suggestions-container">
+                    <button onclick="toggleSuggestions('glucose')">
+                        Sugerencias <i class="fa-solid fa-chevron-down" id="suggestionsToggleIcon"></i>
+                    </button>
+                    <div id="suggestionsPanel"></div>
+                </div>`;
         }
         
         document.getElementById('formContainer').innerHTML = formHTML + 
@@ -533,7 +574,7 @@
              <button class="btn-primary" onclick="addRecord('${type}')" style="margin-top: 10px;">Registrar</button>`;
     }
 
-    // --- NUEVAS FUNCIONES PARA PRESIÓN ARTERIAL ---
+    // --- NUEVAS FUNCIONES PARA PRESIÓN ARTERIAL Y GLUCOSA ---
     function checkBP() {
         const sys = parseInt(document.getElementById('sys').value);
         const dia = parseInt(document.getElementById('dia').value);
@@ -557,7 +598,29 @@
         suggestionsPanel.innerHTML = `<ul>${suggestions.map(s => `<li><i class="fa-solid fa-lightbulb"></i>${s}</li>`).join('')}</ul>`;
     }
 
-    function toggleSuggestions() {
+    function checkGlucose() {
+        const glucose = parseInt(document.getElementById('glucose').value);
+        const indicator = document.getElementById('glucoseIndicator');
+        const suggestionsPanel = document.getElementById('suggestionsPanel');
+
+        if (isNaN(glucose) || glucose <= 0) {
+            indicator.style.display = 'none';
+            suggestionsPanel.style.display = 'none';
+            return;
+        }
+
+        const { category, text } = getGlucoseCategory(glucose);
+        const suggestions = getGlucoseSuggestions(category);
+
+        indicator.style.display = 'block';
+        indicator.className = '';
+        indicator.classList.add(category);
+        indicator.textContent = `Glucosa: ${text}`;
+        
+        suggestionsPanel.innerHTML = `<ul>${suggestions.map(s => `<li><i class="fa-solid fa-lightbulb"></i>${s}</li>`).join('')}</ul>`;
+    }
+
+    function toggleSuggestions(type) {
         const panel = document.getElementById('suggestionsPanel');
         const icon = document.getElementById('suggestionsToggleIcon');
         if (panel.style.display === 'block') {
@@ -615,13 +678,48 @@
             ];
         }
     }
+    
+    function getGlucoseCategory(value) {
+        if (value < 70) {
+            return { category: 'low', text: 'Baja (Hipoglucemia)' };
+        } else if (value >= 70 && value <= 125) {
+            return { category: 'normal', text: 'Normal' };
+        } else if (value > 125) {
+            return { category: 'high', text: 'Alta (Hiperglucemia)' };
+        } else {
+            return { category: 'normal', text: 'Normal' }; // En caso de valores atípicos
+        }
+    }
+    
+    function getGlucoseSuggestions(category) {
+        if (category === 'low') {
+            return [
+                "Consuma 15 gramos de carbohidratos de acción rápida (ej. jugo de fruta, pastillas de glucosa).",
+                "Vuelva a medir su glucosa en 15 minutos.",
+                "Si los síntomas persisten, contacte a su médico."
+            ];
+        } else if (category === 'high') {
+            return [
+                "Realice actividad física ligera (si su médico lo permite).",
+                "Beba más agua para prevenir la deshidratación.",
+                "Reduzca la ingesta de carbohidratos y azúcares.",
+                "Si el nivel de glucosa no baja, consulte a un profesional de la salud."
+            ];
+        } else {
+            return [
+                "Mantenga una dieta balanceada y horarios de comida regulares.",
+                "Realice ejercicio de forma regular.",
+                "Monitoree sus niveles de glucosa de forma consistente."
+            ];
+        }
+    }
 
     async function addRecord(type) {
         const patientDoc = await db.collection("patients").doc(currentPatientId).get();
         const patient = patientDoc.data();
         const date = new Date().toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
         const notes = document.getElementById('recordNotes').value.trim();
-        let newRecord = { type, date, notes };
+        let newRecord = { type, date, notes, timestamp: new Date() };
         
         if (type === 'bp') {
             const sys = parseInt(document.getElementById('sys').value), dia = parseInt(document.getElementById('dia').value), hr = parseInt(document.getElementById('hr').value);
@@ -662,6 +760,7 @@
         else if (record.type === 'weight') content = `<input type="number" id="editValue" value="${record.value}" placeholder="Peso (kg)">`;
         else if (record.type === 'glucose') content = `<input type="number" id="editValue" value="${record.value}" placeholder="Glucosa (mg/dL)">`;
         
+        document.getElementById('editModalTitle').innerText = 'Editar Registro';
         document.getElementById('editModalBody').innerHTML = content + `<textarea id="editNotes" style="margin-top:10px;">${record.notes || ''}</textarea>`;
         openModal('editModal');
     }
@@ -729,18 +828,26 @@
                         <strong>${med.name}</strong> - <span class="med-dose">${med.dose}</span>
                         <div class="med-details">${med.frequency}</div>
                     </div>
-                    <div>
-                        <button class="med-taken-btn" onclick="logMedTaken(${i})">Tomado</button>
+                    <div class="med-actions">
+                        <button class="icon-btn" onclick="openEditMedModal(${i})"><i class="fa-solid fa-pen"></i></button>
                         <button class="icon-btn" onclick="deleteMed(${i})"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
+                <button class="btn-primary med-taken-btn" style="margin-top:10px;" onclick="logMedTaken(${i})">Tomado</button>
                 ${med.takenDates.length > 0 ? `
                     <div class="med-taken-history">
                         <strong>Historial de tomas:</strong>
                         <ul>
-                            ${med.takenDates.slice(0, 3).map(date => `<li><i class="fa-solid fa-clock"></i> ${date}</li>`).join('')}
+                            ${med.takenDates.map((date, j) => `
+                                <li>
+                                    <span><i class="fa-solid fa-clock"></i> ${date}</span>
+                                    <span class="history-actions">
+                                        <button class="icon-btn" onclick="openEditTakenModal(${i}, ${j})"><i class="fa-solid fa-pen-to-square"></i></button>
+                                        <button class="icon-btn" onclick="deleteTaken(${i}, ${j})"><i class="fa-solid fa-xmark"></i></button>
+                                    </span>
+                                </li>
+                            `).join('')}
                         </ul>
-                        ${med.takenDates.length > 3 ? `<div>... y más</div>` : ''}
                     </div>` : ''}
             </div>
         `).join('');
@@ -759,7 +866,8 @@
             name, 
             dose, 
             frequency,
-            takenDates: []
+            takenDates: [],
+            lastTaken: null
         });
         await db.collection("patients").doc(currentPatientId).update({ medications: patient.medications });
         
@@ -771,21 +879,93 @@
     }
 
     async function deleteMed(index) { 
+        if(confirm('¿Seguro que quieres eliminar este medicamento?')) {
+            const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+            const patient = patientDoc.data();
+            patient.medications.splice(index, 1); 
+            await db.collection("patients").doc(currentPatientId).update({ medications: patient.medications });
+            renderMeds();
+        }
+    }
+
+    async function openEditMedModal(index) {
+        currentMedEditIndex = index;
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const med = patientDoc.data().medications[index];
+        document.getElementById('editMedName').value = med.name;
+        document.getElementById('editMedDose').value = med.dose;
+        document.getElementById('editMedFrequency').value = med.frequency;
+        openModal('editMedModal');
+    }
+
+    async function saveMedEdit() {
         const patientDoc = await db.collection("patients").doc(currentPatientId).get();
         const patient = patientDoc.data();
-        patient.medications.splice(index, 1); 
+        const med = patient.medications[currentMedEditIndex];
+        med.name = document.getElementById('editMedName').value.trim();
+        med.dose = document.getElementById('editMedDose').value.trim();
+        med.frequency = document.getElementById('editMedFrequency').value.trim();
         await db.collection("patients").doc(currentPatientId).update({ medications: patient.medications });
-        renderMeds(); 
+        closeModal('editMedModal');
+        renderMeds();
     }
 
     async function logMedTaken(medIndex) {
         const patientDoc = await db.collection("patients").doc(currentPatientId).get();
         const patient = patientDoc.data();
-        const now = new Date().toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
-        patient.medications[medIndex].takenDates.unshift(now);
+        const now = new Date();
+        const nowFormatted = now.toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
+        
+        patient.medications[medIndex].takenDates.unshift(nowFormatted);
+        patient.medications[medIndex].lastTaken = now.toISOString();
+
         await db.collection("patients").doc(currentPatientId).update({ medications: patient.medications });
         renderMeds();
         alert('Toma registrada.');
+    }
+    
+    async function openEditTakenModal(medIndex, takenIndex) {
+        currentTakenEdit = { medIndex, takenIndex };
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const takenDateString = patientDoc.data().medications[medIndex].takenDates[takenIndex];
+        const [datePart, timePart] = takenDateString.split(', ');
+        
+        const [day, month, year] = datePart.split('/');
+        const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        
+        document.getElementById('editTakenDate').value = formattedDate;
+        document.getElementById('editTakenTime').value = timePart;
+        openModal('editTakenModal');
+    }
+
+    async function saveTakenEdit() {
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const patient = patientDoc.data();
+        const medIndex = currentTakenEdit.medIndex;
+        const takenIndex = currentTakenEdit.takenIndex;
+
+        const newDate = document.getElementById('editTakenDate').value;
+        const newTime = document.getElementById('editTakenTime').value;
+
+        if(!newDate || !newTime) return alert("Por favor, complete ambos campos.");
+        
+        const [year, month, day] = newDate.split('-');
+        const newTakenDate = `${day}/${month}/${year}, ${newTime}`;
+        
+        patient.medications[medIndex].takenDates[takenIndex] = newTakenDate;
+        await db.collection("patients").doc(currentPatientId).update({ medications: patient.medications });
+        closeModal('editTakenModal');
+        renderMeds();
+    }
+
+    async function deleteTaken(medIndex, takenIndex) {
+        if(confirm('¿Seguro que quieres eliminar esta toma?')) {
+            const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+            const patient = patientDoc.data();
+            patient.medications[medIndex].takenDates.splice(takenIndex, 1);
+            await db.collection("patients").doc(currentPatientId).update({ medications: patient.medications });
+            renderMeds();
+        }
     }
     
     async function renderSettings() {
@@ -801,7 +981,9 @@
         updateDashboard(); alert('Meta guardada.');
     }
     async function saveReminderSettings() {
-        const enabled = document.getElementById('reminderEnabled').checked, time = document.getElementById('reminderTime').value;
+        const enabled = document.getElementById('reminderEnabled').checked;
+        const time = document.getElementById('reminderTime').value;
+        
         if (enabled && Notification.permission !== 'granted') {
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') {
@@ -817,22 +999,46 @@
     function openModal(id) { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-    setInterval(async () => {
+    async function checkMedicationReminders() {
         if (Notification.permission !== 'granted') return;
-        const now = new Date(), currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+        const now = new Date();
         const snapshot = await db.collection("patients").get();
+
         snapshot.forEach(doc => {
-            const p = doc.data();
-            if(p.reminders.enabled && p.reminders.time === currentTime) {
-                new Notification('Recordatorio de VitalTrack', { body: `Hola ${p.name}, es hora de registrar tus datos de salud.`, icon: 'icons/icon-192.png', renotify: true, tag: 'vitaltrack-reminder' });
-            }
+            const patient = doc.data();
+            const patientId = doc.id;
+
+            patient.medications.forEach((med, medIndex) => {
+                if (med.frequency) {
+                    const lastTaken = med.lastTaken ? new Date(med.lastTaken) : null;
+                    const frequencyHours = parseInt(med.frequency.split(' ')[1]);
+                    
+                    if (lastTaken) {
+                        const nextDueTime = new Date(lastTaken.getTime() + frequencyHours * 60 * 60 * 1000);
+                        const timeDifference = nextDueTime - now;
+
+                        // Notificar si la hora de la próxima toma está en los próximos 10 minutos
+                        if (timeDifference > 0 && timeDifference <= 10 * 60 * 1000) {
+                             new Notification(`Recordatorio de Medicamento para ${patient.name}`, { 
+                                body: `Es hora de tomar ${med.name} (${med.dose}).`, 
+                                icon: 'icons/icon-192.png', 
+                                renotify: true, 
+                                tag: `vitaltrack-med-${patientId}-${medIndex}` 
+                            });
+                        }
+                    }
+                }
+            });
         });
-    }, 60000);
+    }
+
+    // Intervalo de verificación de recordatorios cada minuto
+    setInterval(checkMedicationReminders, 60000);
 
     // --- INICIALIZACIÓN AL CARGAR LA PÁGINA ---
     document.addEventListener('DOMContentLoaded', () => {
         applyTheme(localStorage.getItem('vitaltrack_theme') || 'light');
-        // migrateLocalStorageToFirebase();
         renderPatients();
     });
   </script>
