@@ -76,6 +76,40 @@
     .hip2 { background: #dc3545; }
     .crisis { background: #6c0a0a; }
     .baja { background: #007bff; }
+
+    .panel {
+      display: flex;
+      justify-content: space-around;
+      background: #ffffff;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .panel div {
+      text-align: center;
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 1rem;
+      color: #004c91;
+    }
+
+    .panel p {
+      margin: 0.3rem 0 0;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+
+    .sugerencias {
+      margin-top: 1rem;
+      padding: 0.8rem;
+      border-radius: 8px;
+      background: #f9f9f9;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -83,8 +117,8 @@
     <h1>Registro de Presión Arterial</h1>
   </header>
 
-  <div class="container">
-    <!-- Gestión de pacientes -->
+  <!-- Pantalla de inicio -->
+  <div id="pantallaInicio" class="container">
     <div class="card">
       <h2>Registrar Paciente</h2>
       <label for="nombrePaciente">Nombre</label>
@@ -96,12 +130,35 @@
 
     <div class="card">
       <h2>Seleccionar Paciente</h2>
-      <select id="selectPaciente" onchange="cargarHistorial()"></select>
+      <select id="selectPaciente"></select>
+      <button onclick="entrarPaciente()">Entrar</button>
+    </div>
+  </div>
+
+  <!-- Pantalla del paciente -->
+  <div id="pantallaPaciente" class="container" style="display:none;">
+    <button onclick="volverInicio()">⬅ Volver</button>
+    <h2 id="tituloPaciente"></h2>
+
+    <!-- Panel último registro -->
+    <div class="panel">
+      <div>
+        <h2>Sistólica</h2>
+        <p id="lastSys">-</p>
+      </div>
+      <div>
+        <h2>Diastólica</h2>
+        <p id="lastDia">-</p>
+      </div>
+      <div>
+        <h2>Pulso</h2>
+        <p id="lastPul">-</p>
+      </div>
     </div>
 
-    <!-- Registro de tomas -->
+    <!-- Registro de nueva toma -->
     <div class="card">
-      <h2>Registrar Toma</h2>
+      <h2>Nueva Toma</h2>
       <label for="sistolica">Sistólica (mmHg)</label>
       <input type="number" id="sistolica">
       <label for="diastolica">Diastólica (mmHg)</label>
@@ -109,11 +166,13 @@
       <label for="pulso">Pulso (lpm)</label>
       <input type="number" id="pulso">
       <button onclick="guardarToma()">Guardar Toma</button>
+
+      <div class="sugerencias" id="sugerencias"></div>
     </div>
 
     <!-- Historial -->
     <div class="card">
-      <h2>Historial del Paciente</h2>
+      <h2>Historial</h2>
       <table>
         <thead>
           <tr>
@@ -130,10 +189,11 @@
   </div>
 
   <script>
+    let pacienteActivo = null;
+
     function getPacientes() {
       return JSON.parse(localStorage.getItem("pacientes")) || [];
     }
-
     function savePacientes(pacientes) {
       localStorage.setItem("pacientes", JSON.stringify(pacientes));
     }
@@ -166,23 +226,36 @@
       });
     }
 
+    function entrarPaciente() {
+      let id = document.getElementById("selectPaciente").value;
+      if (!id) { alert("Seleccione un paciente."); return; }
+      pacienteActivo = parseInt(id);
+      let paciente = getPacientes().find(p => p.id === pacienteActivo);
+      document.getElementById("tituloPaciente").innerText = `${paciente.nombre} (${paciente.edad} años)`;
+      document.getElementById("pantallaInicio").style.display = "none";
+      document.getElementById("pantallaPaciente").style.display = "block";
+      cargarHistorial();
+    }
+
+    function volverInicio() {
+      pacienteActivo = null;
+      document.getElementById("pantallaPaciente").style.display = "none";
+      document.getElementById("pantallaInicio").style.display = "block";
+      cargarPacientes();
+    }
+
     function clasificarPresion(sys, dia) {
-      if (sys < 90 || dia < 60) return {estado:"Baja", clase:"baja"};
-      if (sys < 120 && dia < 80) return {estado:"Normal", clase:"normal"};
-      if (sys >= 120 && sys <= 129 && dia < 80) return {estado:"Elevada", clase:"elevada"};
-      if ((sys >= 130 && sys <= 139) || (dia >= 80 && dia <= 89)) return {estado:"Hipertensión Grado 1", clase:"hip1"};
-      if ((sys >= 140 && sys <= 180) || (dia >= 90 && dia <= 120)) return {estado:"Hipertensión Grado 2", clase:"hip2"};
-      if (sys > 180 || dia > 120) return {estado:"Crisis Hipertensiva", clase:"crisis"};
-      return {estado:"Indefinido", clase:""};
+      if (sys < 90 || dia < 60) return {estado:"Baja", clase:"baja", sugerencia:"Posible hipotensión. Hidrátese, evite levantarse bruscamente y consulte a un médico si persiste."};
+      if (sys < 120 && dia < 80) return {estado:"Normal", clase:"normal", sugerencia:"Presión normal. Mantenga hábitos saludables: dieta balanceada, ejercicio regular y control de peso."};
+      if (sys >= 120 && sys <= 129 && dia < 80) return {estado:"Elevada", clase:"elevada", sugerencia:"Presión un poco elevada. Reduzca sal, evite estrés y vigile regularmente sus cifras."};
+      if ((sys >= 130 && sys <= 139) || (dia >= 80 && dia <= 89)) return {estado:"Hipertensión Grado 1", clase:"hip1", sugerencia:"Controle su dieta, reduzca alcohol, tabaco y consulte a su médico para seguimiento."};
+      if ((sys >= 140 && sys <= 180) || (dia >= 90 && dia <= 120)) return {estado:"Hipertensión Grado 2", clase:"hip2", sugerencia:"Riesgo alto. Busque atención médica para tratamiento y control inmediato."};
+      if (sys > 180 || dia > 120) return {estado:"Crisis Hipertensiva", clase:"crisis", sugerencia:"Emergencia médica. Acuda de inmediato a un hospital."};
+      return {estado:"Indefinido", clase:"", sugerencia:"Revise los valores."};
     }
 
     function guardarToma() {
-      let select = document.getElementById("selectPaciente");
-      let id = select.value;
-      if (!id) {
-        alert("Seleccione un paciente primero.");
-        return;
-      }
+      if (!pacienteActivo) { alert("No hay paciente activo."); return; }
       let sys = parseInt(document.getElementById("sistolica").value);
       let dia = parseInt(document.getElementById("diastolica").value);
       let pulso = parseInt(document.getElementById("pulso").value);
@@ -193,7 +266,7 @@
       let estado = clasificarPresion(sys, dia);
 
       let pacientes = getPacientes();
-      let paciente = pacientes.find(p => p.id == id);
+      let paciente = pacientes.find(p => p.id === pacienteActivo);
       paciente.tomas.push({
         fecha: new Date().toLocaleString(),
         sistolica: sys,
@@ -206,18 +279,27 @@
       document.getElementById("sistolica").value = "";
       document.getElementById("diastolica").value = "";
       document.getElementById("pulso").value = "";
+
       cargarHistorial();
+
+      // Mostrar sugerencias
+      let sug = document.getElementById("sugerencias");
+      sug.style.display = "block";
+      sug.innerText = estado.sugerencia;
     }
 
     function cargarHistorial() {
-      let select = document.getElementById("selectPaciente");
-      let id = select.value;
+      let pacientes = getPacientes();
+      let paciente = pacientes.find(p => p.id === pacienteActivo);
       let tbody = document.getElementById("tablaHistorial");
       tbody.innerHTML = "";
-      if (!id) return;
-      let pacientes = getPacientes();
-      let paciente = pacientes.find(p => p.id == id);
-      if (!paciente) return;
+
+      if (!paciente || paciente.tomas.length === 0) {
+        document.getElementById("lastSys").innerText = "-";
+        document.getElementById("lastDia").innerText = "-";
+        document.getElementById("lastPul").innerText = "-";
+        return;
+      }
 
       paciente.tomas.forEach(t => {
         let row = `<tr>
@@ -229,6 +311,12 @@
         </tr>`;
         tbody.innerHTML += row;
       });
+
+      // último registro al panel
+      let ultima = paciente.tomas[paciente.tomas.length - 1];
+      document.getElementById("lastSys").innerText = ultima.sistolica;
+      document.getElementById("lastDia").innerText = ultima.diastolica;
+      document.getElementById("lastPul").innerText = ultima.pulso;
     }
 
     window.onload = () => { cargarPacientes(); };
