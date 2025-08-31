@@ -544,7 +544,7 @@
     function getAnalysisViewHTML() {
         return `<h3>Registrar Análisis</h3>
             <div class="toggle-buttons" style="margin-bottom: 20px;">
-                <button id="btnToggleSMAC30" class="analysis" onclick="showAnalysisForm('smac30')">SMAC 30</button>
+                <button id="btnToggleSmac30" class="analysis" onclick="showAnalysisForm('smac30')">SMAC 30</button>
                 <button id="btnToggleBH" class="analysis" onclick="showAnalysisForm('biometria')">BH</button>
                 <button id="btnToggleEGO" class="analysis" onclick="showAnalysisForm('ego')">EGO</button>
             </div>
@@ -1127,7 +1127,7 @@
     
     function showAnalysisForm(type) {
         document.querySelectorAll('.toggle-buttons button').forEach(b => b.classList.remove('active'));
-        document.querySelector(`#btnToggle${type === 'smac30' ? 'SMAC30' : (type === 'biometria' ? 'BH' : 'EGO')}`).classList.add('active');
+        document.querySelector(`#btnToggle${type === 'smac30' ? 'Smac30' : (type === 'biometria' ? 'BH' : 'EGO')}`).classList.add('active');
         
         const analysisData = analysisTypes[type];
         let formHTML = `
