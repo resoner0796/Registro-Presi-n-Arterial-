@@ -310,16 +310,32 @@
     </div>
   </div>
   
+  <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-firestore-compat.js"></script>
   <script>
     // --- INICIALIZACIÓN Y CONFIGURACIÓN GLOBAL ---
+    // Tu objeto de configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyCJBMRYTeOZq0NoEOw-rOZFJNQR8DKrGLE",
+      authDomain: "presion-app-791ec.firebaseapp.com",
+      projectId: "presion-app-791ec",
+      storageBucket: "presion-app-791ec.firebasestorage.app",
+      messagingSenderId: "724713008822",
+      appId: "1:724713008822:web:5c988e8b8efa71ead34017"
+    };
+
+    // Inicializa Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = app.firestore();
+
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
     }
 
-    let patients = JSON.parse(localStorage.getItem("vitaltrack_patients")) || [];
-    let currentPatientIndex = null;
+    let patients = [];
+    let currentPatientId = null;
     let currentRecordEditIndex = null;
-    let charts = {}; // Para almacenar instancias de gráficos y destruirlas
+    let charts = {};
     
     // --- LÓGICA DEL TEMA (MODO OSCURO/CLARO) ---
     const themeToggleIcon = document.querySelector('.theme-toggle i');
@@ -341,70 +357,80 @@
     }
 
     // --- FUNCIONES DE GUARDADO Y RENDERIZADO ---
-    function saveData() {
-        localStorage.setItem("vitaltrack_patients", JSON.stringify(patients));
+    // Función de migración (descomentar y usar una vez para migrar datos de localStorage)
+    /*
+    async function migrateLocalStorageToFirebase() {
+      const storedPatients = JSON.parse(localStorage.getItem("vitaltrack_patients"));
+      if (storedPatients && storedPatients.length > 0) {
+        console.log("Migrating data from localStorage to Firebase...");
+        for (const p of storedPatients) {
+          await db.collection("patients").add(p);
+        }
+        localStorage.removeItem("vitaltrack_patients");
+        console.log("Migration complete. localStorage data has been removed.");
+      }
     }
+    */
     
-    function dataMigration() {
-        patients.forEach(p => {
-            if (!p.medications) p.medications = [];
-            if (!p.weightGoal) p.weightGoal = null;
-            if (!p.reminders) p.reminders = { enabled: false, time: '08:00' };
-            if (p.records && p.records.length > 0) {
-                 p.records.forEach(r => {
-                    if (r.notes === undefined) r.notes = '';
-                });
-            }
-        });
-        saveData();
-    }
+    // Función de guardado no necesaria, la API de Firebase lo maneja
+    // function saveData() {}
 
-    function renderPatients() {
-        document.getElementById("patientList").innerHTML = patients.map((p, i) => `
+    async function renderPatients() {
+        const patientList = document.getElementById("patientList");
+        patientList.innerHTML = '';
+        const snapshot = await db.collection("patients").get();
+        patients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        if (patients.length === 0) {
+            patientList.innerHTML = "<p style='text-align:center;'>No hay pacientes registrados.</p>";
+            return;
+        }
+
+        patientList.innerHTML = patients.map(p => `
             <div class="patient-card">
-                <span class="patient-name" onclick="openPatient(${i})">${p.name}</span>
-                <button class="icon-btn" onclick="deletePatient(${i})"><i class="fa-solid fa-trash"></i></button>
+                <span class="patient-name" onclick="openPatient('${p.id}')">${p.name}</span>
+                <button class="icon-btn" onclick="deletePatient('${p.id}')"><i class="fa-solid fa-trash"></i></button>
             </div>`).join('');
     }
 
     // --- NAVEGACIÓN Y GESTIÓN DE PACIENTES ---
-    function addPatient() {
+    async function addPatient() {
         const nameInput = document.getElementById("newPatientName");
         const name = nameInput.value.trim();
         if (!name) return;
-        patients.push({ 
+        await db.collection("patients").add({
             name: name, records: [], medications: [],
             weightGoal: null, reminders: { enabled: false, time: '08:00' }
         });
-        saveData();
-        renderPatients();
         nameInput.value = "";
+        renderPatients();
     }
 
-    function deletePatient(index) {
-        if (confirm(`¿Seguro que quieres eliminar a ${patients[index].name} y todos sus registros?`)) {
-            patients.splice(index, 1);
-            saveData();
+    async function deletePatient(id) {
+        const patient = patients.find(p => p.id === id);
+        if (confirm(`¿Seguro que quieres eliminar a ${patient.name} y todos sus registros?`)) {
+            await db.collection("patients").doc(id).delete();
             renderPatients();
         }
     }
 
-    function openPatient(index) {
-        currentPatientIndex = index;
+    async function openPatient(id) {
+        currentPatientId = id;
         document.getElementById("homeScreen").classList.remove("active");
         document.getElementById("patientScreen").classList.add("active");
         document.getElementById('headerLeft').innerHTML = `<i class="fa-solid fa-arrow-left" onclick="backHome()"></i>`;
         document.querySelector('header .title').style.marginLeft = '0';
-        updateDashboard();
+        await updateDashboard();
         switchPatientView('records');
     }
 
     function backHome() {
-        currentPatientIndex = null;
+        currentPatientId = null;
         document.getElementById("patientScreen").classList.remove("active");
         document.getElementById("homeScreen").classList.add("active");
         document.getElementById('headerLeft').innerHTML = '';
         document.querySelector('header .title').style.marginLeft = '-24px';
+        renderPatients();
     }
 
     function switchPatientView(view) {
@@ -520,7 +546,7 @@
             return;
         }
 
-        const { category, color, text } = getBloodPressureCategory(sys, dia);
+        const { category, text } = getBloodPressureCategory(sys, dia);
         const suggestions = getSuggestions(category);
 
         indicator.style.display = 'block';
@@ -590,8 +616,9 @@
         }
     }
 
-    function addRecord(type) {
-        const patient = patients[currentPatientIndex];
+    async function addRecord(type) {
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const patient = patientDoc.data();
         const date = new Date().toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
         const notes = document.getElementById('recordNotes').value.trim();
         let newRecord = { type, date, notes };
@@ -611,19 +638,25 @@
         }
 
         patient.records.unshift(newRecord);
-        saveData(); updateDashboard(); renderHistory(); showForm(type);
+        await db.collection("patients").doc(currentPatientId).update({ records: patient.records });
+        updateDashboard(); renderHistory(); showForm(type);
     }
     
-    function deleteRecord(index) {
+    async function deleteRecord(index) {
         if(confirm('¿Seguro que quieres eliminar este registro?')) {
-            patients[currentPatientIndex].records.splice(index, 1);
-            saveData(); updateDashboard(); renderHistory();
+            const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+            const patient = patientDoc.data();
+            patient.records.splice(index, 1);
+            await db.collection("patients").doc(currentPatientId).update({ records: patient.records });
+            updateDashboard(); renderHistory();
         }
     }
 
-    function openEditModal(index) {
+    async function openEditModal(index) {
         currentRecordEditIndex = index;
-        const record = patients[currentPatientIndex].records[index];
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const patient = patientDoc.data();
+        const record = patient.records[index];
         let content = '';
         if(record.type === 'bp') content = `<input type="number" id="editSys" value="${record.sys}" placeholder="Sistólica"><input type="number" id="editDia" value="${record.dia}" placeholder="Diastólica" style="margin-top:10px;"><input type="number" id="editHr" value="${record.hr}" placeholder="Pulso" style="margin-top:10px;">`;
         else if (record.type === 'weight') content = `<input type="number" id="editValue" value="${record.value}" placeholder="Peso (kg)">`;
@@ -633,8 +666,10 @@
         openModal('editModal');
     }
 
-    function saveRecordEdit() {
-        const record = patients[currentPatientIndex].records[currentRecordEditIndex];
+    async function saveRecordEdit() {
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const patient = patientDoc.data();
+        const record = patient.records[currentRecordEditIndex];
         record.notes = document.getElementById('editNotes').value.trim();
         if (record.type === 'bp') {
             record.sys = parseInt(document.getElementById('editSys').value);
@@ -643,12 +678,14 @@
         } else {
             record.value = parseFloat(document.getElementById('editValue').value);
         }
-        saveData(); closeModal('editModal'); updateDashboard(); renderHistory();
+        await db.collection("patients").doc(currentPatientId).update({ records: patient.records });
+        closeModal('editModal'); updateDashboard(); renderHistory();
     }
     
     // --- LÓGICA DE VISTAS (RENDERIZADO) ---
-    function renderHistory() {
-        const records = patients[currentPatientIndex].records;
+    async function renderHistory() {
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const records = patientDoc.data().records;
         document.getElementById("history").innerHTML = records.length === 0 ? "<p style='text-align:center;'>No hay registros.</p>" : records.map((r, i) => {
             let dataHTML = '', iconClass = '', faIcon = '';
             if (r.type === 'bp') { dataHTML = `${r.sys}/${r.dia} mmHg | ${r.hr} lpm`; iconClass = 'bp'; faIcon = 'fa-heart-pulse'; }
@@ -659,8 +696,9 @@
         }).join('');
     }
 
-    function updateDashboard() {
-        const { records, weightGoal } = patients[currentPatientIndex];
+    async function updateDashboard() {
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const { records, weightGoal } = patientDoc.data();
         const lastBP = records.find(r => r.type === 'bp'), lastWeight = records.find(r => r.type === 'weight'), lastGlucose = records.find(r => r.type === 'glucose');
         document.querySelector("#lastPressure .value").innerText = lastBP ? `${lastBP.sys}/${lastBP.dia}` : '--/--';
         document.querySelector("#lastWeight .value").innerText = lastWeight ? `${lastWeight.value} kg` : '-- kg';
@@ -668,9 +706,10 @@
         document.querySelector("#lastWeight .goal-progress").innerText = (weightGoal && lastWeight) ? `Meta: ${weightGoal} kg` : '';
     }
 
-    function renderCharts() {
+    async function renderCharts() {
         Object.values(charts).forEach(chart => chart.destroy()); // Limpiar gráficos anteriores
-        const records = [...patients[currentPatientIndex].records].reverse();
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const records = [...patientDoc.data().records].reverse();
         const bpData = records.filter(r => r.type === 'bp'), weightData = records.filter(r => r.type === 'weight'), glucoseData = records.filter(r => r.type === 'glucose');
         const options = { responsive: true, plugins: { legend: { labels: { color: getComputedStyle(document.body).getPropertyValue('--text-color') }}}, scales: { x: { ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-muted-color') }}, y: { ticks: { color: getComputedStyle(document.body).getPropertyValue('--text-muted-color') }}}};
 
@@ -679,9 +718,10 @@
         if(glucoseData.length) charts.glucose = new Chart(document.getElementById('glucoseChart'), { type: 'line', data: { labels: glucoseData.map(r => r.date.split(',')[0]), datasets: [{ label: 'Glucosa (mg/dL)', data: glucoseData.map(r => r.value), borderColor: '#fd7e14', tension: 0.1 }]}, options});
     }
     
-    function renderMeds() {
+    async function renderMeds() {
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const meds = patientDoc.data().medications;
         const medsList = document.getElementById('medsList');
-        const meds = patients[currentPatientIndex].medications;
         medsList.innerHTML = meds.length === 0 ? "<p style='text-align:center;'>No hay medicamentos registrados.</p>" : meds.map((med, i) => `
             <div class="med-entry">
                 <div class="med-header">
@@ -706,20 +746,23 @@
         `).join('');
     }
 
-    function addMed() {
+    async function addMed() {
         const name = document.getElementById('medName').value.trim();
         const dose = document.getElementById('medDose').value.trim();
         const frequency = document.getElementById('medFrequency').value.trim();
         
         if(!name || !dose) return alert("Por favor, complete al menos el nombre y la dosis del medicamento.");
         
-        patients[currentPatientIndex].medications.push({
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const patient = patientDoc.data();
+        patient.medications.push({
             name, 
             dose, 
             frequency,
             takenDates: []
         });
-        saveData(); 
+        await db.collection("patients").doc(currentPatientId).update({ medications: patient.medications });
+        
         renderMeds();
         
         document.getElementById('medName').value = ''; 
@@ -727,29 +770,35 @@
         document.getElementById('medFrequency').value = '';
     }
 
-    function deleteMed(index) { 
-        patients[currentPatientIndex].medications.splice(index, 1); 
-        saveData(); 
+    async function deleteMed(index) { 
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const patient = patientDoc.data();
+        patient.medications.splice(index, 1); 
+        await db.collection("patients").doc(currentPatientId).update({ medications: patient.medications });
         renderMeds(); 
     }
 
-    function logMedTaken(medIndex) {
+    async function logMedTaken(medIndex) {
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const patient = patientDoc.data();
         const now = new Date().toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
-        patients[currentPatientIndex].medications[medIndex].takenDates.unshift(now);
-        saveData();
+        patient.medications[medIndex].takenDates.unshift(now);
+        await db.collection("patients").doc(currentPatientId).update({ medications: patient.medications });
         renderMeds();
         alert('Toma registrada.');
     }
     
-    function renderSettings() {
-        const { weightGoal, reminders } = patients[currentPatientIndex];
+    async function renderSettings() {
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const { weightGoal, reminders } = patientDoc.data();
         document.getElementById('weightGoalInput').value = weightGoal || '';
         document.getElementById('reminderEnabled').checked = reminders.enabled;
         document.getElementById('reminderTime').value = reminders.time;
     }
-    function setWeightGoal() {
-        patients[currentPatientIndex].weightGoal = parseFloat(document.getElementById('weightGoalInput').value) || null;
-        saveData(); updateDashboard(); alert('Meta guardada.');
+    async function setWeightGoal() {
+        const weightGoal = parseFloat(document.getElementById('weightGoalInput').value) || null;
+        await db.collection("patients").doc(currentPatientId).update({ weightGoal });
+        updateDashboard(); alert('Meta guardada.');
     }
     async function saveReminderSettings() {
         const enabled = document.getElementById('reminderEnabled').checked, time = document.getElementById('reminderTime').value;
@@ -760,18 +809,20 @@
                 document.getElementById('reminderEnabled').checked = false; return;
             }
         }
-        patients[currentPatientIndex].reminders = { enabled, time };
-        saveData(); alert('Ajustes de recordatorio guardados.');
+        await db.collection("patients").doc(currentPatientId).update({ reminders: { enabled, time } });
+        alert('Ajustes de recordatorio guardados.');
     }
 
     // --- MODAL Y NOTIFICACIONES ---
     function openModal(id) { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-    setInterval(() => {
+    setInterval(async () => {
         if (Notification.permission !== 'granted') return;
         const now = new Date(), currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-        patients.forEach(p => {
+        const snapshot = await db.collection("patients").get();
+        snapshot.forEach(doc => {
+            const p = doc.data();
             if(p.reminders.enabled && p.reminders.time === currentTime) {
                 new Notification('Recordatorio de VitalTrack', { body: `Hola ${p.name}, es hora de registrar tus datos de salud.`, icon: 'icons/icon-192.png', renotify: true, tag: 'vitaltrack-reminder' });
             }
@@ -781,7 +832,7 @@
     // --- INICIALIZACIÓN AL CARGAR LA PÁGINA ---
     document.addEventListener('DOMContentLoaded', () => {
         applyTheme(localStorage.getItem('vitaltrack_theme') || 'light');
-        dataMigration(); // Asegura que los datos viejos sean compatibles
+        // migrateLocalStorageToFirebase();
         renderPatients();
     });
   </script>
