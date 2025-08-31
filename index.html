@@ -1252,7 +1252,6 @@
 
         patient.analysis.unshift(newAnalysis);
         
-        // --- LÍNEA DE CÓDIGO CORREGIDA Y AGREGADA ---
         await db.collection("patients").doc(currentPatientId).update({ analysis: patient.analysis });
         
         renderAnalysisHistory();
