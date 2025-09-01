@@ -544,9 +544,9 @@
     function getAnalysisViewHTML() {
         return `<h3>Registrar Análisis</h3>
             <div class="toggle-buttons" style="margin-bottom: 20px;">
-                <button id="btnToggleSmac30" class="analysis" onclick="showAnalysisForm('smac30')">SMAC 30</button>
-                <button id="btnToggleBH" class="analysis" onclick="showAnalysisForm('biometria')">BH</button>
-                <button id="btnToggleEGO" class="analysis" onclick="showAnalysisForm('ego')">EGO</button>
+                <button id="btnToggle-smac30" class="analysis" onclick="showAnalysisForm('smac30')">SMAC 30</button>
+                <button id="btnToggle-biometria" class="analysis" onclick="showAnalysisForm('biometria')">BH</button>
+                <button id="btnToggle-ego" class="analysis" onclick="showAnalysisForm('ego')">EGO</button>
             </div>
             <div id="analysisFormContainer"></div>
             <h3 style="margin-top: 30px;">Historial de Análisis</h3>
@@ -1038,96 +1038,96 @@
         smac30: {
             title: 'SMAC 30',
             fields: [
-                { name: 'Glucosa', unit: 'mg/dl', ref: '64 - 99', type: 'number' },
-                { name: 'Acido Urico', unit: 'mg/dl', ref: '3.1 - 7.8', type: 'number' },
-                { name: 'BUN', unit: 'mg/dl', ref: '5 - 26', type: 'number' },
-                { name: 'Creatinina Serica', unit: 'mg/dl', ref: '0.5 - 1.1', type: 'number' },
-                { name: 'BUN/Creatinina', unit: '', ref: '8 - 27', type: 'number' },
-                { name: 'Urea', unit: 'mg/dl', ref: '10.7 - 55.64', type: 'number' },
-                { name: 'Sodio', unit: 'mmol/L', ref: '134 - 149', type: 'number' },
-                { name: 'Potasio', unit: 'mmol/L', ref: '3.3 - 5.6', type: 'number' },
-                { name: 'Cloro', unit: 'mmol/L', ref: '89 - 110', type: 'number' },
-                { name: 'Calcio', unit: 'mg/dl', ref: '8.5 - 10.8', type: 'number' },
-                { name: 'Fosforo', unit: 'mg/dl', ref: '2.5 - 4.5', type: 'number' },
-                { name: 'Proteinas Totales', unit: 'g/dL', ref: '6.0 - 8.0', type: 'number' },
-                { name: 'Albumina', unit: 'g/dL', ref: '3.5 - 5.5', type: 'number' },
-                { name: 'Globulina', unit: 'g/dL', ref: '1.5 - 4.5', type: 'number' },
-                { name: 'Relación A/G', unit: 'g/dL', ref: '1.1 - 2.5', type: 'number' },
-                { name: 'Bilirrubina Total', unit: 'mg/dl', ref: '0.10 - 1.50', type: 'number' },
-                { name: 'Bilirrubina Directa', unit: 'mg/dl', ref: '0.01 - 0.5', type: 'number' },
-                { name: 'Bilirrubina Indirecta', unit: 'mg/dl', ref: '0.1 - 1.0', type: 'number' },
-                { name: 'Fosfatasa Alcalina', unit: 'U/L', ref: '35 - 180', type: 'number' },
-                { name: 'LDH', unit: 'U/L', ref: '100 - 250', type: 'number' },
-                { name: 'AST (TGO)', unit: 'U/L', ref: '0 - 40', type: 'number' },
-                { name: 'ALT (TGP)', unit: 'U/L', ref: '0 - 55', type: 'number' },
-                { name: 'GGT', unit: 'U/L', ref: '0 - 60', type: 'number' },
-                { name: 'Hierro Serico', unit: 'mcg/dl', ref: '35 - 155', type: 'number' },
+                { name: 'Glucosa', nameId: 'Glucosa', unit: 'mg/dl', ref: '64 - 99', type: 'number' },
+                { name: 'Acido Urico', nameId: 'Acido-Urico', unit: 'mg/dl', ref: '3.1 - 7.8', type: 'number' },
+                { name: 'BUN', nameId: 'BUN', unit: 'mg/dl', ref: '5 - 26', type: 'number' },
+                { name: 'Creatinina Serica', nameId: 'Creatinina-Serica', unit: 'mg/dl', ref: '0.5 - 1.1', type: 'number' },
+                { name: 'BUN/Creatinina', nameId: 'BUN-Creatinina', unit: '', ref: '8 - 27', type: 'number' },
+                { name: 'Urea', nameId: 'Urea', unit: 'mg/dl', ref: '10.7 - 55.64', type: 'number' },
+                { name: 'Sodio', nameId: 'Sodio', unit: 'mmol/L', ref: '134 - 149', type: 'number' },
+                { name: 'Potasio', nameId: 'Potasio', unit: 'mmol/L', ref: '3.3 - 5.6', type: 'number' },
+                { name: 'Cloro', nameId: 'Cloro', unit: 'mmol/L', ref: '89 - 110', type: 'number' },
+                { name: 'Calcio', nameId: 'Calcio', unit: 'mg/dl', ref: '8.5 - 10.8', type: 'number' },
+                { name: 'Fosforo', nameId: 'Fosforo', unit: 'mg/dl', ref: '2.5 - 4.5', type: 'number' },
+                { name: 'Proteinas Totales', nameId: 'Proteinas-Totales', unit: 'g/dL', ref: '6.0 - 8.0', type: 'number' },
+                { name: 'Albumina', nameId: 'Albumina', unit: 'g/dL', ref: '3.5 - 5.5', type: 'number' },
+                { name: 'Globulina', nameId: 'Globulina', unit: 'g/dL', ref: '1.5 - 4.5', type: 'number' },
+                { name: 'Relación A/G', nameId: 'Relacion-A/G', unit: 'g/dL', ref: '1.1 - 2.5', type: 'number' },
+                { name: 'Bilirrubina Total', nameId: 'Bilirrubina-Total', unit: 'mg/dl', ref: '0.10 - 1.50', type: 'number' },
+                { name: 'Bilirrubina Directa', nameId: 'Bilirrubina-Directa', unit: 'mg/dl', ref: '0.01 - 0.5', type: 'number' },
+                { name: 'Bilirrubina Indirecta', nameId: 'Bilirrubina-Indirecta', unit: 'mg/dl', ref: '0.1 - 1.0', type: 'number' },
+                { name: 'Fosfatasa Alcalina', nameId: 'Fosfatasa-Alcalina', unit: 'U/L', ref: '35 - 180', type: 'number' },
+                { name: 'LDH', nameId: 'LDH', unit: 'U/L', ref: '100 - 250', type: 'number' },
+                { name: 'AST (TGO)', nameId: 'AST-(TGO)', unit: 'U/L', ref: '0 - 40', type: 'number' },
+                { name: 'ALT (TGP)', nameId: 'ALT-(TGP)', unit: 'U/L', ref: '0 - 55', type: 'number' },
+                { name: 'GGT', nameId: 'GGT', unit: 'U/L', ref: '0 - 60', type: 'number' },
+                { name: 'Hierro Serico', nameId: 'Hierro-Serico', unit: 'mcg/dl', ref: '35 - 155', type: 'number' },
                 { name: 'LIPIDOS', type: 'header' },
-                { name: 'Colesterol', unit: 'mg/dl', ref: '70 - 199', type: 'number' },
-                { name: 'Trigliceridos', unit: 'mg/dl', ref: '0 - 149', type: 'number' },
-                { name: 'HDL-Colesterol', unit: 'mg/dl', ref: '45.0 - 65.0', type: 'number' },
-                { name: 'LDL-Colesterol', unit: 'mg/dl', ref: '0.00 - 99.00', type: 'number' },
-                { name: 'T Col/HDL, Colesterol', unit: '', ref: '0.00 - 5.00', type: 'number' },
-                { name: 'VLDL-Col.', unit: 'mg/dl', ref: '0.00 - 29.80', type: 'number' }
+                { name: 'Colesterol', nameId: 'Colesterol', unit: 'mg/dl', ref: '70 - 199', type: 'number' },
+                { name: 'Trigliceridos', nameId: 'Trigliceridos', unit: 'mg/dl', ref: '0 - 149', type: 'number' },
+                { name: 'HDL-Colesterol', nameId: 'HDL-Colesterol', unit: 'mg/dl', ref: '45.0 - 65.0', type: 'number' },
+                { name: 'LDL-Colesterol', nameId: 'LDL-Colesterol', unit: 'mg/dl', ref: '0.00 - 99.00', type: 'number' },
+                { name: 'T Col/HDL, Colesterol', nameId: 'T-Col-HDL-Colesterol', unit: '', ref: '0.00 - 5.00', type: 'number' },
+                { name: 'VLDL-Col.', nameId: 'VLDL-Col', unit: 'mg/dl', ref: '0.00 - 29.80', type: 'number' }
             ]
         },
         biometria: {
             title: 'Biometría Hemática',
             fields: [
-                { name: 'Eritrocitos', unit: 'x10⁶/µl', ref: '4.0 - 5.0', type: 'number' },
-                { name: 'Hematocrito', unit: '%', ref: '37 - 47', type: 'number' },
-                { name: 'Hemoglobina', unit: 'g/dL', ref: '12.0 - 16.0', type: 'number' },
-                { name: 'Leucocitos', unit: 'x10³/µl', ref: '5.0 - 10.0', type: 'number' },
-                { name: 'VCM', unit: 'fL', ref: '84.0 - 103.0', type: 'number' },
-                { name: 'HCM', unit: 'pg', ref: '27.0 - 34.0', type: 'number' },
-                { name: 'CMHC', unit: 'g/dL', ref: '30 - 36', type: 'number' },
-                { name: 'Plaquetas', unit: 'x10³/µl', ref: '150.0 - 400.0', type: 'number' },
+                { name: 'Eritrocitos', nameId: 'Eritrocitos', unit: 'x10⁶/µl', ref: '4.0 - 5.0', type: 'number' },
+                { name: 'Hematocrito', nameId: 'Hematocrito', unit: '%', ref: '37 - 47', type: 'number' },
+                { name: 'Hemoglobina', nameId: 'Hemoglobina', unit: 'g/dL', ref: '12.0 - 16.0', type: 'number' },
+                { name: 'Leucocitos', nameId: 'Leucocitos', unit: 'x10³/µl', ref: '5.0 - 10.0', type: 'number' },
+                { name: 'VCM', nameId: 'VCM', unit: 'fL', ref: '84.0 - 103.0', type: 'number' },
+                { name: 'HCM', nameId: 'HCM', unit: 'pg', ref: '27.0 - 34.0', type: 'number' },
+                { name: 'CMHC', nameId: 'CMHC', unit: 'g/dL', ref: '30 - 36', type: 'number' },
+                { name: 'Plaquetas', nameId: 'Plaquetas', unit: 'x10³/µl', ref: '150.0 - 400.0', type: 'number' },
                 { name: 'DIFERENCIAL', type: 'header' },
-                { name: 'Basofilos', unit: '%', ref: '0 - 1', type: 'number' },
-                { name: 'Eosinofilos', unit: '%', ref: '0 - 3', type: 'number' },
-                { name: 'Mielocitos', unit: '%', ref: '0', type: 'number' },
-                { name: 'Metamielocitos', unit: '%', ref: '0', type: 'number' },
-                { name: 'Bandas', unit: '%', ref: '0', type: 'number' },
-                { name: 'Segmentados', unit: '%', ref: '34 - 74', type: 'number' },
-                { name: 'Linfocitos', unit: '%', ref: '25 - 40', type: 'number' },
-                { name: 'Linfocitos Atipicos', unit: '%', ref: '0', type: 'number' },
-                { name: 'Monocitos', unit: '%', ref: '3 - 10', type: 'number' }
+                { name: 'Basofilos', nameId: 'Basofilos', unit: '%', ref: '0 - 1', type: 'number' },
+                { name: 'Eosinofilos', nameId: 'Eosinofilos', unit: '%', ref: '0 - 3', type: 'number' },
+                { name: 'Mielocitos', nameId: 'Mielocitos', unit: '%', ref: '0', type: 'number' },
+                { name: 'Metamielocitos', nameId: 'Metamielocitos', unit: '%', ref: '0', type: 'number' },
+                { name: 'Bandas', nameId: 'Bandas', unit: '%', ref: '0', type: 'number' },
+                { name: 'Segmentados', nameId: 'Segmentados', unit: '%', ref: '34 - 74', type: 'number' },
+                { name: 'Linfocitos', nameId: 'Linfocitos', unit: '%', ref: '25 - 40', type: 'number' },
+                { name: 'Linfocitos Atipicos', nameId: 'Linfocitos-Atipicos', unit: '%', ref: '0', type: 'number' },
+                { name: 'Monocitos', nameId: 'Monocitos', unit: '%', ref: '3 - 10', type: 'number' }
             ]
         },
         ego: {
             title: 'EGO (Examen General de Orina)',
             fields: [
                 { name: 'ANALISIS FISICOQUIMICO', type: 'header' },
-                { name: 'Color', ref: 'Amarillo', type: 'text' },
-                { name: 'Apariencia', ref: 'Clara', type: 'text' },
-                { name: 'Densidad', unit: '', ref: '1.005 - 1.035', type: 'number' },
-                { name: 'pH', unit: '', ref: '5.0 - 7.0', type: 'number' },
-                { name: 'C. Cetonicos', ref: 'Negativo', type: 'text' },
-                { name: 'Nitritos', ref: 'Negativo', type: 'text' },
-                { name: 'Proteínas', ref: 'Negativo', type: 'text' },
-                { name: 'Bilirrubina', ref: 'Negativo', type: 'text' },
-                { name: 'Urobilinógeno', unit: 'mg / dL', ref: '0.2 - 1.0', type: 'text' },
-                { name: 'Glucosa', ref: 'Negativo', type: 'text' },
-                { name: 'Sangre', ref: 'Negativo', type: 'text' },
-                { name: 'Leucocitos (Tira)', ref: 'Negativo', type: 'text' },
+                { name: 'Color', nameId: 'Color', ref: 'Amarillo', type: 'text' },
+                { name: 'Apariencia', nameId: 'Apariencia', ref: 'Clara', type: 'text' },
+                { name: 'Densidad', nameId: 'Densidad', unit: '', ref: '1.005 - 1.035', type: 'number' },
+                { name: 'pH', nameId: 'pH', unit: '', ref: '5.0 - 7.0', type: 'number' },
+                { name: 'C. Cetonicos', nameId: 'C-Cetonicos', ref: 'Negativo', type: 'text' },
+                { name: 'Nitritos', nameId: 'Nitritos', ref: 'Negativo', type: 'text' },
+                { name: 'Proteínas', nameId: 'Proteinas', ref: 'Negativo', type: 'text' },
+                { name: 'Bilirrubina', nameId: 'Bilirrubina', ref: 'Negativo', type: 'text' },
+                { name: 'Urobilinógeno', nameId: 'Urobilinogeno', unit: 'mg / dL', ref: '0.2 - 1.0', type: 'text' },
+                { name: 'Glucosa', nameId: 'Glucosa', ref: 'Negativo', type: 'text' },
+                { name: 'Sangre', nameId: 'Sangre', ref: 'Negativo', type: 'text' },
+                { name: 'Leucocitos (Tira)', nameId: 'Leucocitos-(Tira)', ref: 'Negativo', type: 'text' },
                 { name: 'EXAMEN MICROSCOPICO DEL SEDIMENTO', type: 'header' },
-                { name: 'Leucocitos', ref: '0 - 3', unit: 'por campo', type: 'number' },
-                { name: 'Eritrocitos', ref: '0 - 2', unit: 'por campo', type: 'number' },
-                { name: 'Células Epiteliales', ref: 'Escasas', type: 'text' },
-                { name: 'Bacterias', ref: 'Escasas', type: 'text' },
-                { name: 'Hilos Mucosos', ref: 'Ausentes', type: 'text' },
-                { name: 'Células de Levadura', ref: 'Ausentes', type: 'text' },
-                { name: 'Cristales', ref: 'Ausentes', type: 'text' },
-                { name: 'Cilindros', ref: 'Ausentes', type: 'text' },
-                { name: 'Parásitos', ref: 'Ausentes', type: 'text' },
-                { name: 'Células de tubulo renal', ref: 'Ausentes', type: 'text' }
+                { name: 'Leucocitos', nameId: 'Leucocitos-micro', ref: '0 - 3', unit: 'por campo', type: 'number' },
+                { name: 'Eritrocitos', nameId: 'Eritrocitos-micro', ref: '0 - 2', unit: 'por campo', type: 'number' },
+                { name: 'Células Epiteliales', nameId: 'Celulas-Epiteliales', ref: 'Escasas', type: 'text' },
+                { name: 'Bacterias', nameId: 'Bacterias', ref: 'Escasas', type: 'text' },
+                { name: 'Hilos Mucosos', nameId: 'Hilos-Mucosos', ref: 'Ausentes', type: 'text' },
+                { name: 'Células de Levadura', nameId: 'Celulas-de-Levadura', ref: 'Ausentes', type: 'text' },
+                { name: 'Cristales', nameId: 'Cristales', ref: 'Ausentes', type: 'text' },
+                { name: 'Cilindros', nameId: 'Cilindros', ref: 'Ausentes', type: 'text' },
+                { name: 'Parásitos', nameId: 'Parasitos', ref: 'Ausentes', type: 'text' },
+                { name: 'Células de tubulo renal', nameId: 'Celulas-de-tubulo-renal', ref: 'Ausentes', type: 'text' }
             ]
         }
     };
     
     function showAnalysisForm(type) {
         document.querySelectorAll('.toggle-buttons button').forEach(b => b.classList.remove('active'));
-        document.querySelector(`#btnToggle${type === 'smac30' ? 'Smac30' : (type === 'biometria' ? 'BH' : 'EGO')}`).classList.add('active');
+        document.querySelector(`#btnToggle-${type}`).classList.add('active');
         
         const analysisData = analysisTypes[type];
         let formHTML = `
@@ -1150,7 +1150,7 @@
                 formHTML += `
                     <tr>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${field.name}</td>
-                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><input type="${field.type === 'number' ? 'number' : 'text'}" id="input-${field.name.replace(/ /g, '-')}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);"></td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><input type="${field.type === 'number' ? 'number' : 'text'}" id="input-${field.nameId}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);"></td>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.unit || ''}</td>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.ref}</td>
                     </tr>
@@ -1237,7 +1237,7 @@
         
         analysisData.fields.forEach(field => {
             if(field.type !== 'header') {
-                const input = document.getElementById(`input-${field.name.replace(/ /g, '-')}`);
+                const input = document.getElementById(`input-${field.nameId}`);
                 newAnalysis.results.push({
                     name: field.name,
                     value: input.value.trim(),
@@ -1340,7 +1340,7 @@
                 content += `
                     <tr>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${field.name}</td>
-                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><input type="${field.type === 'number' ? 'number' : 'text'}" id="edit-input-${field.name.replace(/ /g, '-')}" value="${currentValue}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);"></td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><input type="${field.type === 'number' ? 'number' : 'text'}" id="edit-input-${field.nameId}" value="${currentValue}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);"></td>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.unit || ''}</td>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.ref}</td>
                     </tr>
@@ -1367,7 +1367,7 @@
         analysisToUpdate.results = [];
         analysisData.fields.forEach(field => {
             if (field.type !== 'header') {
-                const input = document.getElementById(`edit-input-${field.name.replace(/ /g, '-')}`);
+                const input = document.getElementById(`edit-input-${field.nameId}`);
                 analysisToUpdate.results.push({
                     name: field.name,
                     value: input.value.trim(),
