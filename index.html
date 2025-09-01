@@ -99,14 +99,28 @@
       border-bottom: 1px solid var(--border-color);
       color: var(--primary-color);
       display: flex;
+      flex-direction: column; /* Cambiado a columna para el nuevo elemento */
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
       position: relative;
       z-index: 10;
     }
     header .title { flex-grow: 1; text-align: center; margin-left: -24px; }
+    header .header-controls {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
     header .theme-toggle { font-size: 0.8em; cursor: pointer; padding: 8px; }
     header .header-btn { width: 40px; text-align: center; font-size: 1.1em; color: var(--text-color); cursor: pointer;}
+    header .patient-name-display {
+      font-size: 1.2em; /* Tamaño de fuente para el nombre */
+      font-weight: 500;
+      color: var(--text-color);
+      margin-top: 10px; /* Separación del título */
+      display: none; /* Oculto por defecto */
+    }
 
 
     .screen { flex: 1; display: none; flex-direction: column; overflow: hidden; position: relative; }
@@ -311,9 +325,12 @@
 <body>
   <div class="app">
     <header>
+      <div class="header-controls">
         <div id="headerLeft" class="header-btn"></div>
         <div class="title"><i class="fa-solid fa-heart-pulse"></i> VitalTrack</div>
         <div class="theme-toggle header-btn" onclick="toggleTheme()"><i class="fa-solid fa-moon"></i></div>
+      </div>
+      <div id="patientNameDisplay" class="patient-name-display"></div>
     </header>
 
     <div id="homeScreen" class="screen active">
@@ -486,8 +503,15 @@
         currentPatientId = id;
         document.getElementById("homeScreen").classList.remove("active");
         document.getElementById("patientScreen").classList.add("active");
+        
+        // Obtener el nombre del paciente y mostrarlo
+        const patientDoc = await db.collection("patients").doc(id).get();
+        const patientName = patientDoc.data().name;
+        document.getElementById('patientNameDisplay').innerText = patientName;
+        document.getElementById('patientNameDisplay').style.display = 'block';
+
         document.getElementById('headerLeft').innerHTML = `<i class="fa-solid fa-arrow-left" onclick="backHome()"></i>`;
-        document.querySelector('header .title').style.marginLeft = '0';
+        document.querySelector('header .title').style.display = 'none'; // Ocultar el título
         await updateDashboard();
         switchPatientView('records');
     }
@@ -496,8 +520,10 @@
         currentPatientId = null;
         document.getElementById("patientScreen").classList.remove("active");
         document.getElementById("homeScreen").classList.add("active");
+        
         document.getElementById('headerLeft').innerHTML = '';
-        document.querySelector('header .title').style.marginLeft = '-24px';
+        document.getElementById('patientNameDisplay').style.display = 'none';
+        document.querySelector('header .title').style.display = 'block'; // Mostrar el título
         renderPatients();
     }
 
