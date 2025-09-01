@@ -1170,7 +1170,9 @@
                 formHTML += `
                     <tr>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${field.name}</td>
-                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><select id="input-${field.nameId}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);">${optionsHtml}</select></td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">
+                          <select id="input-${field.nameId}" data-field-type="${field.type}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);">${optionsHtml}</select>
+                        </td>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.unit || ''}</td>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.ref}</td>
                     </tr>
@@ -1179,7 +1181,9 @@
                 formHTML += `
                     <tr>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${field.name}</td>
-                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><input type="${field.type}" id="input-${field.nameId}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);"></td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">
+                          <input type="${field.type}" id="input-${field.nameId}" data-field-type="${field.type}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);">
+                        </td>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.unit || ''}</td>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.ref}</td>
                     </tr>
@@ -1201,7 +1205,7 @@
         
         results.forEach(result => {
             const fieldInfo = analysisData.fields.find(f => f.name === result.name);
-            if (!fieldInfo || fieldInfo.type !== 'number' || !result.value) return;
+            if (!fieldInfo || fieldInfo.type !== 'number' || result.value === null || result.value === '') return;
             
             const [min, max] = fieldInfo.ref.split(' - ').map(Number);
             const value = parseFloat(result.value);
@@ -1267,10 +1271,16 @@
             if(field.type !== 'header') {
                 const input = document.getElementById(`input-${field.nameId}`);
                 if (input) {
-                     const value = field.type === 'number' ? parseFloat(input.value) : input.value.trim();
-                     newAnalysis.results.push({
+                    let value;
+                    if (field.type === 'number') {
+                        value = parseFloat(input.value);
+                        value = isNaN(value) ? '' : value; // Guarda como string vacío si no es un número
+                    } else { // 'select'
+                        value = input.value.trim();
+                    }
+                    newAnalysis.results.push({
                         name: field.name,
-                        value: isNaN(value) ? '' : value,
+                        value: value,
                         unit: field.unit,
                         ref: field.ref
                     });
@@ -1377,27 +1387,32 @@
         analysisData.fields.forEach(field => {
             if (field.type === 'header') {
                 content += `<tr><td colspan="4" style="font-weight:bold; padding: 15px 10px 5px; font-size: 1.1em;">${field.name}</td></tr>`;
-            } else if (field.type === 'select') {
-                const currentValue = analysis.results.find(r => r.name === field.name)?.value || '';
-                const optionsHtml = field.options.map(option => `<option value="${option}" ${currentValue === option ? 'selected' : ''}>${option}</option>`).join('');
-                 content += `
-                    <tr>
-                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${field.name}</td>
-                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><select id="edit-input-${field.nameId}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);">${optionsHtml}</select></td>
-                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.unit || ''}</td>
-                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.ref}</td>
-                    </tr>
-                `;
             } else {
-                const currentValue = analysis.results.find(r => r.name === field.name)?.value || '';
-                content += `
-                    <tr>
-                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${field.name}</td>
-                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><input type="${field.type}" id="edit-input-${field.nameId}" value="${currentValue}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);"></td>
-                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.unit || ''}</td>
-                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.ref}</td>
-                    </tr>
-                `;
+                const currentValue = analysis.results.find(r => r.name === field.name)?.value;
+                if (field.type === 'select') {
+                    const optionsHtml = field.options.map(option => `<option value="${option}" ${currentValue === option ? 'selected' : ''}>${option}</option>`).join('');
+                     content += `
+                        <tr>
+                            <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${field.name}</td>
+                            <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">
+                              <select id="edit-input-${field.nameId}" data-field-type="${field.type}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);">${optionsHtml}</select>
+                            </td>
+                            <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.unit || ''}</td>
+                            <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.ref}</td>
+                        </tr>
+                    `;
+                } else {
+                    content += `
+                        <tr>
+                            <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${field.name}</td>
+                            <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">
+                              <input type="${field.type}" id="edit-input-${field.nameId}" value="${currentValue}" data-field-type="${field.type}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);">
+                            </td>
+                            <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.unit || ''}</td>
+                            <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.ref}</td>
+                        </tr>
+                    `;
+                }
             }
         });
         
@@ -1422,10 +1437,16 @@
             if (field.type !== 'header') {
                 const input = document.getElementById(`edit-input-${field.nameId}`);
                 if (input) {
-                    const value = field.type === 'number' ? parseFloat(input.value) : input.value.trim();
+                    let value;
+                    if (field.type === 'number') {
+                        value = parseFloat(input.value);
+                        value = isNaN(value) ? '' : value;
+                    } else { // 'select'
+                        value = input.value.trim();
+                    }
                     analysisToUpdate.results.push({
                         name: field.name,
-                        value: isNaN(value) ? '' : value,
+                        value: value,
                         unit: field.unit,
                         ref: field.ref
                     });
