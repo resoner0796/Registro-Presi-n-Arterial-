@@ -14,6 +14,9 @@
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
 
   <style>
     :root {
@@ -168,11 +171,12 @@
     }
 
     .history-entry { background: var(--bg-color); padding: 12px; margin-bottom: 10px; border-radius: 8px; }
-    .history-header { display: flex; align-items: center; gap: 15px; }
+    .history-header { display: flex; align-items: center; gap: 15px; cursor: pointer;}
     .icon { width: 30px; text-align: center; }
     .icon i { font-size: 1.5em; }
     .icon.bp { color: var(--primary-color); } .icon.weight { color: var(--secondary-color); } .icon.glucose { color: var(--glucose-color); }
     .icon.analysis { color: var(--analysis-color); }
+    .history-details { flex-grow: 1;}
     .history-details .data { font-weight: 500; }
     .history-details .date { font-size: 0.8em; color: var(--text-muted-color); }
     .history-notes {
@@ -1262,12 +1266,14 @@
         analysisData.fields.forEach(field => {
             if(field.type !== 'header') {
                 const input = document.getElementById(`input-${field.nameId}`);
-                newAnalysis.results.push({
-                    name: field.name,
-                    value: input.value.trim(),
-                    unit: field.unit,
-                    ref: field.ref
-                });
+                if (input) {
+                    newAnalysis.results.push({
+                        name: field.name,
+                        value: input.value.trim(),
+                        unit: field.unit,
+                        ref: field.ref
+                    });
+                }
             }
         });
         
@@ -1297,46 +1303,55 @@
 
         analysisHistoryDiv.innerHTML = analysisList.map((a, i) => {
             const title = analysisTypes[a.type]?.title || 'Análisis Desconocido';
-            let interpretationHTML = '';
-            if (a.interpretation && a.interpretation.issues && a.interpretation.issues.length > 0) {
-                interpretationHTML = `
-                    <div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 8px; margin-top: 10px;">
-                        <strong><i class="fa-solid fa-triangle-exclamation"></i> ${a.interpretation.title}</strong>
-                        <ul>
-                            ${a.interpretation.issues.map(issue => `
-                                <li>
-                                    ${getIssueText(issue)}
-                                </li>
-                            `).join('')}
-                        </ul>
-                    </div>
-                `;
-            } else if (a.interpretation) {
-                 interpretationHTML = `
-                    <div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 8px; margin-top: 10px;">
-                        <strong><i class="fa-solid fa-check-circle"></i> ${a.interpretation.title}</strong>
-                        <p style="margin:0;">${a.interpretation.summary}</p>
-                    </div>
-                 `;
-            }
+            const interpretationHTML = a.interpretation ? `
+                <div id="interpretation-${i}" style="display: none; padding-top: 10px;">
+                    ${a.interpretation.issues && a.interpretation.issues.length > 0 ? `
+                        <div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 8px; margin-top: 10px;">
+                            <strong><i class="fa-solid fa-triangle-exclamation"></i> ${a.interpretation.title}</strong>
+                            <ul>
+                                ${a.interpretation.issues.map(issue => `
+                                    <li>
+                                        ${getIssueText(issue)}
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    ` : `
+                        <div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 8px; margin-top: 10px;">
+                            <strong><i class="fa-solid fa-check-circle"></i> ${a.interpretation.title}</strong>
+                            <p style="margin:0;">${a.interpretation.summary}</p>
+                        </div>
+                    `}
+                </div>
+            ` : '';
             
             return `
                 <div class="history-entry">
-                    <div class="history-header">
+                    <div class="history-header" onclick="toggleAnalysisInterpretation(${i})">
                         <div class="icon analysis"><i class="fa-solid fa-microscope"></i></div>
                         <div class="history-details">
                             <div class="data"><strong>${title}</strong></div>
                             <div class="date">${a.date}</div>
                         </div>
                         <div style="margin-left:auto;">
-                            <button class="icon-btn" onclick="openEditAnalysisModal(${i})"><i class="fa-solid fa-pen"></i></button>
-                            <button class="icon-btn" onclick="deleteAnalysis(${i})"><i class="fa-solid fa-trash"></i></button>
+                            <button class="icon-btn" onclick="event.stopPropagation(); exportAnalysisToPDF(${i})"><i class="fa-solid fa-file-pdf"></i></button>
+                            <button class="icon-btn" onclick="event.stopPropagation(); openEditAnalysisModal(${i})"><i class="fa-solid fa-pen"></i></button>
+                            <button class="icon-btn" onclick="event.stopPropagation(); deleteAnalysis(${i})"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
                     ${interpretationHTML}
                 </div>
             `;
         }).join('');
+    }
+
+    function toggleAnalysisInterpretation(index) {
+        const interpretationDiv = document.getElementById(`interpretation-${index}`);
+        if (interpretationDiv.style.display === 'block') {
+            interpretationDiv.style.display = 'none';
+        } else {
+            interpretationDiv.style.display = 'block';
+        }
     }
     
     async function openEditAnalysisModal(index) {
@@ -1405,12 +1420,14 @@
         analysisData.fields.forEach(field => {
             if (field.type !== 'header') {
                 const input = document.getElementById(`edit-input-${field.nameId}`);
-                analysisToUpdate.results.push({
-                    name: field.name,
-                    value: input.value.trim(),
-                    unit: field.unit,
-                    ref: field.ref
-                });
+                if (input) {
+                    analysisToUpdate.results.push({
+                        name: field.name,
+                        value: input.value.trim(),
+                        unit: field.unit,
+                        ref: field.ref
+                    });
+                }
             }
         });
         
@@ -1431,6 +1448,36 @@
             await db.collection("patients").doc(currentPatientId).update({ analysis: patient.analysis });
             renderAnalysisHistory();
         }
+    }
+
+    async function exportAnalysisToPDF(index) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+        const patient = patientDoc.data();
+        const analysis = patient.analysis[index];
+        const analysisTitle = analysisTypes[analysis.type]?.title || 'Análisis';
+        const patientName = patient.name;
+        
+        doc.setFontSize(16);
+        doc.text(`VitalTrack - Reporte de Análisis`, 14, 20);
+        doc.setFontSize(12);
+        doc.text(`Paciente: ${patientName}`, 14, 30);
+        doc.text(`Análisis: ${analysisTitle}`, 14, 37);
+        doc.text(`Fecha: ${analysis.date}`, 14, 44);
+
+        const tableColumn = ["Examen", "Resultado", "Unidad", "Referencia"];
+        const tableRows = [];
+
+        analysis.results.forEach(item => {
+            tableRows.push([item.name, item.value, item.unit, item.ref]);
+        });
+        
+        doc.autoTable(tableColumn, tableRows, { startY: 55 });
+
+        doc.save(`${patientName}_${analysisTitle.replace(/\s/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+        alert('Generando PDF...');
     }
     
     // --- MODAL Y NOTIFICACIONES ---
