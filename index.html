@@ -560,6 +560,9 @@
                 <button id="btnToggle-smac30" onclick="showAnalysisForm('smac30')">SMAC 30</button>
                 <button id="btnToggle-biometria" onclick="showAnalysisForm('biometria')">BH</button>
                 <button id="btnToggle-ego" onclick="showAnalysisForm('ego')">EGO</button>
+                <button id="btnToggle-lipidico" onclick="showAnalysisForm('lipidico')">Lípidos</button>
+                <button id="btnToggle-hba1c" onclick="showAnalysisForm('hba1c')">HbA1c</button>
+                <button id="btnToggle-vitaminas" onclick="showAnalysisForm('vitaminas')">Vitaminas</button>
             </div>
             <div id="analysisFormWrapper" style="display:none;">
                 <div id="analysisFormContainer"></div>
@@ -1138,6 +1141,29 @@
                 { name: 'Parásitos', nameId: 'Parasitos', type: 'select', options: ['Ausentes', 'Presentes'], ref: 'Ausentes' },
                 { name: 'Células de tubulo renal', nameId: 'Celulas-de-tubulo-renal', type: 'select', options: ['Ausentes', 'Presentes'], ref: 'Ausentes' }
             ]
+        },
+        lipidico: {
+            title: 'Perfil Lipídico',
+            fields: [
+                { name: 'Colesterol Total', nameId: 'Colesterol-Total', unit: 'mg/dL', ref: '< 200', type: 'number' },
+                { name: 'Triglicéridos', nameId: 'Trigliceridos', unit: 'mg/dL', ref: '< 150', type: 'number' },
+                { name: 'Colesterol HDL', nameId: 'Colesterol-HDL', unit: 'mg/dL', ref: '> 40 (Hombres) / > 50 (Mujeres)', type: 'number' },
+                { name: 'Colesterol LDL', nameId: 'Colesterol-LDL', unit: 'mg/dL', ref: '< 100', type: 'number' },
+                { name: 'Colesterol VLDL', nameId: 'Colesterol-VLDL', unit: 'mg/dL', ref: '< 30', type: 'number' }
+            ]
+        },
+        hba1c: {
+            title: 'Hemoglobina Glicosilada (HbA1c)',
+            fields: [
+                { name: 'HbA1c', nameId: 'HbA1c', unit: '%', ref: '< 5.7', type: 'number' }
+            ]
+        },
+        vitaminas: {
+            title: 'Vitaminas D y B12',
+            fields: [
+                { name: 'Vitamina D', nameId: 'Vitamina-D', unit: 'ng/mL', ref: '30 - 100', type: 'number' },
+                { name: 'Vitamina B12', nameId: 'Vitamina-B12', unit: 'pg/mL', ref: '200 - 900', type: 'number' }
+            ]
         }
     };
     
@@ -1205,15 +1231,55 @@
         
         results.forEach(result => {
             const fieldInfo = analysisData.fields.find(f => f.name === result.name);
-            if (!fieldInfo || fieldInfo.type !== 'number' || result.value === null || result.value === '') return;
-            
-            const [min, max] = fieldInfo.ref.split(' - ').map(Number);
-            const value = parseFloat(result.value);
-            
-            if (value < min) {
-                issues.push({ name: result.name, value, status: 'bajo', ref: fieldInfo.ref });
-            } else if (value > max) {
-                issues.push({ name: result.name, value, status: 'alto', ref: fieldInfo.ref });
+            if (!fieldInfo || fieldInfo.type === 'header') return;
+
+            let value = result.value;
+            let refText = fieldInfo.ref;
+
+            if (fieldInfo.type === 'number' && value !== '' && !isNaN(value)) {
+                value = parseFloat(value);
+                
+                if (type === 'lipidico' && fieldInfo.name === 'Colesterol-LDL' && (value === null || isNaN(value))) {
+                    const hdl = parseFloat(results.find(r => r.name === 'Colesterol HDL')?.value);
+                    const trig = parseFloat(results.find(r => r.name === 'Triglicéridos')?.value);
+                    const total = parseFloat(results.find(r => r.name === 'Colesterol Total')?.value);
+                    if (total && hdl && trig && trig <= 400) {
+                        value = total - hdl - (trig / 5);
+                        result.value = value.toFixed(2);
+                        result.notes = 'Calculado por la app';
+                    }
+                }
+                if (type === 'lipidico' && fieldInfo.name === 'Colesterol-VLDL' && (value === null || isNaN(value))) {
+                    const trig = parseFloat(results.find(r => r.name === 'Triglicéridos')?.value);
+                    if (trig && trig <= 400) {
+                        value = trig / 5;
+                        result.value = value.toFixed(2);
+                        result.notes = 'Calculado por la app';
+                    }
+                }
+
+                if (typeof refText === 'string' && refText.includes('<')) {
+                    const limit = parseFloat(refText.replace('<', '').trim());
+                    if (value >= limit) {
+                        issues.push({ name: result.name, value, status: 'alto', ref: refText });
+                    }
+                } else if (typeof refText === 'string' && refText.includes('>')) {
+                    const limit = parseFloat(refText.replace('>', '').trim());
+                    if (value <= limit) {
+                        issues.push({ name: result.name, value, status: 'bajo', ref: refText });
+                    }
+                } else if (typeof refText === 'string' && refText.includes(' - ')) {
+                    const [min, max] = refText.split(' - ').map(Number);
+                    if (value < min) {
+                        issues.push({ name: result.name, value, status: 'bajo', ref: refText });
+                    } else if (value > max) {
+                        issues.push({ name: result.name, value, status: 'alto', ref: refText });
+                    }
+                }
+            } else if (fieldInfo.type === 'select') {
+                if (value !== fieldInfo.ref && (fieldInfo.ref !== 'Escasas' || value !== 'Ausentes')) {
+                    issues.push({ name: result.name, value, status: 'fuera de rango', ref: fieldInfo.ref });
+                }
             }
         });
         
@@ -1234,27 +1300,33 @@
     }
     
     function getIssueText(issue) {
-        let text = `<strong>${issue.name}</strong> (${issue.value}): `;
+        let text = `<strong>${issue.name}</strong>: `;
         if (issue.status === 'bajo') {
-            text += 'Bajo. Esto podría indicar ';
+            text += `Valor bajo (${issue.value}). Esto podría indicar `;
             switch(issue.name) {
                 case 'Glucosa': text += 'hipoglucemia. Posiblemente por ingesta insuficiente de carbohidratos.'; break;
                 case 'Hemoglobina': text += 'anemia. Se sugiere evaluar la dieta y posible deficiencia de hierro.'; break;
-                case 'LDL-Colesterol': text += 'un nivel bajo de colesterol malo, lo cual es generalmente bueno, pero puede necesitar ser revisado por un médico en ciertos contextos.'; break;
+                case 'Colesterol LDL': text += 'un nivel bajo de colesterol malo, lo cual es generalmente bueno.'; break;
                 case 'Sodio': text += 'hiponatremia. Posiblemente por exceso de agua o problemas renales.'; break;
+                case 'Vitamina D': text += 'una deficiencia, asociada a debilidad ósea, fatiga o debilidad muscular.'; break;
+                case 'Vitamina B12': text += 'una deficiencia, que puede causar anemia, fatiga o problemas neurológicos.'; break;
                 default: text += 'la causa debe ser evaluada por un médico para un diagnóstico preciso.';
             }
         } else if (issue.status === 'alto') {
-            text += 'Alto. Esto podría indicar ';
+            text += `Valor alto (${issue.value}). Esto podría indicar `;
             switch(issue.name) {
                 case 'Glucosa': text += 'hiperglucemia. Se sugiere controlar la dieta y monitorear el nivel de azúcar en la sangre.'; break;
                 case 'Leucocitos': text += 'leucocitosis. Puede ser una respuesta a una infección o inflamación.'; break;
-                case 'Colesterol': text += 'hipercolesterolemia. Se recomienda mejorar la dieta y hacer más ejercicio.'; break;
-                case 'Trigliceridos': text += 'hipertrigliceridemia. Se aconseja reducir azúcares y grasas saturadas.'; break;
+                case 'Colesterol Total': text += 'hipercolesterolemia. Se recomienda mejorar la dieta y hacer más ejercicio.'; break;
+                case 'Triglicéridos': text += 'hipertrigliceridemia. Se aconseja reducir azúcares y grasas saturadas.'; break;
                 case 'Sodio': text += 'hipernatremia. Posiblemente por deshidratación.'; break;
                 case 'GGT': text += 'posible daño hepático o biliar. Es importante la evaluación médica.'; break;
+                case 'HbA1c': text += 'pre-diabetes o diabetes. Se necesita una evaluación médica y cambios en el estilo de vida.'; break;
+                case 'Vitamina D': text += 'un exceso, generalmente por suplementación. Puede causar toxicidad.'; break;
                 default: text += 'la causa debe ser evaluada por un médico para un diagnóstico preciso.';
             }
+        } else if (issue.status === 'fuera de rango') {
+            text += `Valor fuera de rango (${issue.value}). Los valores normales son: ${issue.ref}.`;
         }
         return text;
     }
@@ -1273,8 +1345,7 @@
                 if (input) {
                     let value;
                     if (field.type === 'number') {
-                        value = parseFloat(input.value);
-                        value = isNaN(value) ? '' : value; // Guarda como string vacío si no es un número
+                        value = input.value.trim();
                     } else { // 'select'
                         value = input.value.trim();
                     }
@@ -1439,8 +1510,7 @@
                 if (input) {
                     let value;
                     if (field.type === 'number') {
-                        value = parseFloat(input.value);
-                        value = isNaN(value) ? '' : value;
+                        value = input.value.trim();
                     } else { // 'select'
                         value = input.value.trim();
                     }
