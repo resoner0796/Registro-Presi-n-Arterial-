@@ -1267,9 +1267,10 @@
             if(field.type !== 'header') {
                 const input = document.getElementById(`input-${field.nameId}`);
                 if (input) {
-                    newAnalysis.results.push({
+                     const value = field.type === 'number' ? parseFloat(input.value) : input.value.trim();
+                     newAnalysis.results.push({
                         name: field.name,
-                        value: input.value.trim(),
+                        value: isNaN(value) ? '' : value,
                         unit: field.unit,
                         ref: field.ref
                     });
@@ -1421,9 +1422,10 @@
             if (field.type !== 'header') {
                 const input = document.getElementById(`edit-input-${field.nameId}`);
                 if (input) {
+                    const value = field.type === 'number' ? parseFloat(input.value) : input.value.trim();
                     analysisToUpdate.results.push({
                         name: field.name,
-                        value: input.value.trim(),
+                        value: isNaN(value) ? '' : value,
                         unit: field.unit,
                         ref: field.ref
                     });
