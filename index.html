@@ -16,7 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-
+  <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-storage-compat.js"></script>
 
   <style>
     :root {
@@ -410,6 +410,8 @@
     // Inicializa Firebase
     const app = firebase.initializeApp(firebaseConfig);
     const db = app.firestore();
+    // ** NUEVO: Inicializar Firebase Storage **
+    const storage = app.storage();
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
@@ -563,7 +565,13 @@
             </div>
             <div id="analysisFormWrapper" style="display:none;">
                 <div id="analysisFormContainer"></div>
-                <button class="btn-primary" id="saveAnalysisBtn" style="margin-top: 10px; display: none;">Registrar Análisis</button>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn-primary" id="saveAnalysisBtn" style="flex-grow:1;">Registrar Análisis</button>
+                    <label for="pdfUploadInput" class="btn-primary" style="flex-grow:1; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                        <i class="fa-solid fa-upload" style="margin-right: 8px;"></i> Subir PDF
+                    </label>
+                    <input type="file" id="pdfUploadInput" accept="application/pdf" style="display:none;">
+                </div>
             </div>
             <h3 style="margin-top: 30px;">Historial de Análisis</h3>
             <div id="analysisHistory"></div>
@@ -1145,7 +1153,8 @@
         document.querySelectorAll('.analysis-buttons-container button').forEach(b => b.classList.remove('active'));
         document.querySelector(`#btnToggle-${type}`).classList.add('active');
         document.getElementById('analysisFormWrapper').style.display = 'block';
-        document.getElementById('saveAnalysisBtn').style.display = 'block';
+        
+        // Asignar el evento al botón "Registrar Análisis"
         document.getElementById('saveAnalysisBtn').onclick = () => addAnalysis(type);
         
         const analysisData = analysisTypes[type];
@@ -1193,8 +1202,21 @@
         `;
         
         document.getElementById('analysisFormContainer').innerHTML = formHTML;
+        
+        // NUEVO: Asignar el evento al input de archivo
+        document.getElementById('pdfUploadInput').onchange = () => {
+            const file = document.getElementById('pdfUploadInput').files[0];
+            if (file) {
+                if (file.type !== 'application/pdf') {
+                    alert('Solo se pueden subir archivos PDF.');
+                    document.getElementById('pdfUploadInput').value = '';
+                    return;
+                }
+                addAnalysis(type, file);
+            }
+        };
     }
-
+    
     function getAnalysisInterpretation(type, results) {
         let issues = [];
         const analysisData = analysisTypes[type];
@@ -1255,16 +1277,34 @@
         return text;
     }
 
-    async function addAnalysis(type) {
+    async function addAnalysis(type, file = null) {
         const patientDoc = await db.collection("patients").doc(currentPatientId).get();
         const patient = patientDoc.data();
         const analysisData = analysisTypes[type];
         const date = new Date().toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
         
-        let newAnalysis = { type, date, timestamp: new Date(), results: [] };
+        let newAnalysis = { type, date, timestamp: new Date(), results: [], pdfUrl: null };
         
+        // Si hay un archivo PDF, subirlo a Firebase Storage
+        if (file) {
+            const storageRef = storage.ref();
+            const pdfRef = storageRef.child(`analysis_pdfs/${currentPatientId}/${file.name}_${new Date().getTime()}`);
+            
+            try {
+                const snapshot = await pdfRef.put(file);
+                const pdfUrl = await snapshot.ref.getDownloadURL();
+                newAnalysis.pdfUrl = pdfUrl;
+                alert('PDF subido con éxito. Registrando análisis...');
+            } catch (error) {
+                console.error("Error al subir el archivo PDF:", error);
+                alert('Error al subir el PDF.');
+                return;
+            }
+        }
+        
+        // Recorrer los campos del formulario para guardar los resultados
         analysisData.fields.forEach(field => {
-            if(field.type !== 'header') {
+            if (field.type !== 'header') {
                 const input = document.getElementById(`input-${field.nameId}`);
                 if (input) {
                     newAnalysis.results.push({
@@ -1324,7 +1364,12 @@
                     `}
                 </div>
             ` : '';
-            
+
+            // NUEVO: Botones de acción para PDF y visualización
+            const pdfActions = a.pdfUrl ? `
+                <a href="${a.pdfUrl}" target="_blank" class="icon-btn" style="color:var(--danger-color);"><i class="fa-solid fa-file-pdf"></i></a>
+            ` : `<button class="icon-btn" onclick="event.stopPropagation(); exportAnalysisToPDF(${i})"><i class="fa-solid fa-file-pdf"></i></button>`;
+
             return `
                 <div class="history-entry">
                     <div class="history-header" onclick="toggleAnalysisInterpretation(${i})">
@@ -1334,7 +1379,7 @@
                             <div class="date">${a.date}</div>
                         </div>
                         <div style="margin-left:auto;">
-                            <button class="icon-btn" onclick="event.stopPropagation(); exportAnalysisToPDF(${i})"><i class="fa-solid fa-file-pdf"></i></button>
+                            ${pdfActions}
                             <button class="icon-btn" onclick="event.stopPropagation(); openEditAnalysisModal(${i})"><i class="fa-solid fa-pen"></i></button>
                             <button class="icon-btn" onclick="event.stopPropagation(); deleteAnalysis(${i})"><i class="fa-solid fa-trash"></i></button>
                         </div>
@@ -1444,6 +1489,19 @@
         if(confirm('¿Seguro que quieres eliminar este análisis?')) {
             const patientDoc = await db.collection("patients").doc(currentPatientId).get();
             const patient = patientDoc.data();
+            
+            // Si hay un PDF asociado, eliminarlo de Storage
+            const analysisToDelete = patient.analysis[index];
+            if (analysisToDelete.pdfUrl) {
+                try {
+                    const storageRef = storage.refFromURL(analysisToDelete.pdfUrl);
+                    await storageRef.delete();
+                    console.log('PDF eliminado de Storage.');
+                } catch (error) {
+                    console.error("Error al eliminar el PDF de Storage:", error);
+                }
+            }
+            
             patient.analysis.splice(index, 1);
             await db.collection("patients").doc(currentPatientId).update({ analysis: patient.analysis });
             renderAnalysisHistory();
