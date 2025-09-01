@@ -150,17 +150,27 @@
     }
     .patient-bottom-nav .nav-item.active { color: var(--primary-color); border-top-color: var(--primary-color); }
 
-    .toggle-buttons { display: flex; gap: 10px; margin-bottom: 20px; }
+    .toggle-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
     .toggle-buttons button { background: var(--border-color); color: var(--text-muted-color); flex-grow: 1; padding: 10px 15px; border-radius: 20px;}
     .toggle-buttons button.active.bp { background: var(--primary-color); color: white; }
     .toggle-buttons button.active.weight { background: var(--secondary-color); color: white; }
     .toggle-buttons button.active.glucose { background: var(--glucose-color); color: white; }
     .toggle-buttons button.active.analysis { background: var(--analysis-color); color: white; }
+    
+    .analysis-buttons-container {
+        display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;
+    }
+    .analysis-buttons-container button {
+        background: var(--border-color); color: var(--text-muted-color); flex-grow: 1; padding: 10px 15px; border-radius: 20px;
+    }
+    .analysis-buttons-container button.active {
+        background: var(--analysis-color); color: white;
+    }
 
     .history-entry { background: var(--bg-color); padding: 12px; margin-bottom: 10px; border-radius: 8px; }
     .history-header { display: flex; align-items: center; gap: 15px; }
     .icon { width: 30px; text-align: center; }
-    .history-header .icon i { font-size: 1.5em; }
+    .icon i { font-size: 1.5em; }
     .icon.bp { color: var(--primary-color); } .icon.weight { color: var(--secondary-color); } .icon.glucose { color: var(--glucose-color); }
     .icon.analysis { color: var(--analysis-color); }
     .history-details .data { font-weight: 500; }
@@ -508,7 +518,6 @@
                 break;
             case 'analysis':
                 contentArea.innerHTML = getAnalysisViewHTML();
-                showAnalysisForm('smac30');
                 renderAnalysisHistory();
                 break;
             case 'settings': 
@@ -543,12 +552,15 @@
     }
     function getAnalysisViewHTML() {
         return `<h3>Registrar Análisis</h3>
-            <div class="toggle-buttons" style="margin-bottom: 20px;">
-                <button id="btnToggle-smac30" class="analysis" onclick="showAnalysisForm('smac30')">SMAC 30</button>
-                <button id="btnToggle-biometria" class="analysis" onclick="showAnalysisForm('biometria')">BH</button>
-                <button id="btnToggle-ego" class="analysis" onclick="showAnalysisForm('ego')">EGO</button>
+            <div class="analysis-buttons-container">
+                <button id="btnToggle-smac30" onclick="showAnalysisForm('smac30')">SMAC 30</button>
+                <button id="btnToggle-biometria" onclick="showAnalysisForm('biometria')">BH</button>
+                <button id="btnToggle-ego" onclick="showAnalysisForm('ego')">EGO</button>
             </div>
-            <div id="analysisFormContainer"></div>
+            <div id="analysisFormWrapper" style="display:none;">
+                <div id="analysisFormContainer"></div>
+                <button class="btn-primary" id="saveAnalysisBtn" style="margin-top: 10px; display: none;">Registrar Análisis</button>
+            </div>
             <h3 style="margin-top: 30px;">Historial de Análisis</h3>
             <div id="analysisHistory"></div>
         `;
@@ -1098,36 +1110,39 @@
             title: 'EGO (Examen General de Orina)',
             fields: [
                 { name: 'ANALISIS FISICOQUIMICO', type: 'header' },
-                { name: 'Color', nameId: 'Color', ref: 'Amarillo', type: 'text' },
-                { name: 'Apariencia', nameId: 'Apariencia', ref: 'Clara', type: 'text' },
+                { name: 'Color', nameId: 'Color', type: 'select', options: ['Amarillo', 'Rojo', 'Ámbar', 'Incoloro'], ref: 'Amarillo' },
+                { name: 'Apariencia', nameId: 'Apariencia', type: 'select', options: ['Clara', 'Ligeramente turbia', 'Turbia'], ref: 'Clara' },
                 { name: 'Densidad', nameId: 'Densidad', unit: '', ref: '1.005 - 1.035', type: 'number' },
                 { name: 'pH', nameId: 'pH', unit: '', ref: '5.0 - 7.0', type: 'number' },
-                { name: 'C. Cetonicos', nameId: 'C-Cetonicos', ref: 'Negativo', type: 'text' },
-                { name: 'Nitritos', nameId: 'Nitritos', ref: 'Negativo', type: 'text' },
-                { name: 'Proteínas', nameId: 'Proteinas', ref: 'Negativo', type: 'text' },
-                { name: 'Bilirrubina', nameId: 'Bilirrubina', ref: 'Negativo', type: 'text' },
-                { name: 'Urobilinógeno', nameId: 'Urobilinogeno', unit: 'mg / dL', ref: '0.2 - 1.0', type: 'text' },
-                { name: 'Glucosa', nameId: 'Glucosa', ref: 'Negativo', type: 'text' },
-                { name: 'Sangre', nameId: 'Sangre', ref: 'Negativo', type: 'text' },
-                { name: 'Leucocitos (Tira)', nameId: 'Leucocitos-(Tira)', ref: 'Negativo', type: 'text' },
+                { name: 'C. Cetonicos', nameId: 'C-Cetonicos', type: 'select', options: ['Negativo', 'Trazas', 'Positivo'], ref: 'Negativo' },
+                { name: 'Nitritos', nameId: 'Nitritos', type: 'select', options: ['Negativo', 'Positivo'], ref: 'Negativo' },
+                { name: 'Proteínas', nameId: 'Proteinas', type: 'select', options: ['Negativo', 'Trazas', 'Positivo'], ref: 'Negativo' },
+                { name: 'Bilirrubina', nameId: 'Bilirrubina', type: 'select', options: ['Negativo', 'Positivo'], ref: 'Negativo' },
+                { name: 'Urobilinógeno', nameId: 'Urobilinogeno', unit: 'mg / dL', ref: '0.2 - 1.0', type: 'number' },
+                { name: 'Glucosa', nameId: 'Glucosa', type: 'select', options: ['Negativo', 'Positivo'], ref: 'Negativo' },
+                { name: 'Sangre', nameId: 'Sangre', type: 'select', options: ['Negativo', 'Trazas', 'Positivo'], ref: 'Negativo' },
+                { name: 'Leucocitos (Tira)', nameId: 'Leucocitos-(Tira)', type: 'select', options: ['Negativo', 'Trazas', 'Positivo'], ref: 'Negativo' },
                 { name: 'EXAMEN MICROSCOPICO DEL SEDIMENTO', type: 'header' },
                 { name: 'Leucocitos', nameId: 'Leucocitos-micro', ref: '0 - 3', unit: 'por campo', type: 'number' },
                 { name: 'Eritrocitos', nameId: 'Eritrocitos-micro', ref: '0 - 2', unit: 'por campo', type: 'number' },
-                { name: 'Células Epiteliales', nameId: 'Celulas-Epiteliales', ref: 'Escasas', type: 'text' },
-                { name: 'Bacterias', nameId: 'Bacterias', ref: 'Escasas', type: 'text' },
-                { name: 'Hilos Mucosos', nameId: 'Hilos-Mucosos', ref: 'Ausentes', type: 'text' },
-                { name: 'Células de Levadura', nameId: 'Celulas-de-Levadura', ref: 'Ausentes', type: 'text' },
-                { name: 'Cristales', nameId: 'Cristales', ref: 'Ausentes', type: 'text' },
-                { name: 'Cilindros', nameId: 'Cilindros', ref: 'Ausentes', type: 'text' },
-                { name: 'Parásitos', nameId: 'Parasitos', ref: 'Ausentes', type: 'text' },
-                { name: 'Células de tubulo renal', nameId: 'Celulas-de-tubulo-renal', ref: 'Ausentes', type: 'text' }
+                { name: 'Células Epiteliales', nameId: 'Celulas-Epiteliales', type: 'select', options: ['Ausentes', 'Escasas', 'Moderadas', 'Abundantes'], ref: 'Escasas' },
+                { name: 'Bacterias', nameId: 'Bacterias', type: 'select', options: ['Ausentes', 'Escasas', 'Moderadas', 'Abundantes'], ref: 'Escasas' },
+                { name: 'Hilos Mucosos', nameId: 'Hilos-Mucosos', type: 'select', options: ['Ausentes', 'Escasos', 'Moderados', 'Abundantes'], ref: 'Ausentes' },
+                { name: 'Células de Levadura', nameId: 'Celulas-de-Levadura', type: 'select', options: ['Ausentes', 'Presentes'], ref: 'Ausentes' },
+                { name: 'Cristales', nameId: 'Cristales', type: 'select', options: ['Ausentes', 'Presentes'], ref: 'Ausentes' },
+                { name: 'Cilindros', nameId: 'Cilindros', type: 'select', options: ['Ausentes', 'Hialinos', 'Granulosos', 'Céreos'], ref: 'Ausentes' },
+                { name: 'Parásitos', nameId: 'Parasitos', type: 'select', options: ['Ausentes', 'Presentes'], ref: 'Ausentes' },
+                { name: 'Células de tubulo renal', nameId: 'Celulas-de-tubulo-renal', type: 'select', options: ['Ausentes', 'Presentes'], ref: 'Ausentes' }
             ]
         }
     };
     
     function showAnalysisForm(type) {
-        document.querySelectorAll('.toggle-buttons button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.analysis-buttons-container button').forEach(b => b.classList.remove('active'));
         document.querySelector(`#btnToggle-${type}`).classList.add('active');
+        document.getElementById('analysisFormWrapper').style.display = 'block';
+        document.getElementById('saveAnalysisBtn').style.display = 'block';
+        document.getElementById('saveAnalysisBtn').onclick = () => addAnalysis(type);
         
         const analysisData = analysisTypes[type];
         let formHTML = `
@@ -1146,11 +1161,21 @@
         analysisData.fields.forEach(field => {
             if (field.type === 'header') {
                 formHTML += `<tr><td colspan="4" style="font-weight:bold; padding: 15px 10px 5px; font-size: 1.1em;">${field.name}</td></tr>`;
-            } else {
+            } else if (field.type === 'select') {
+                const optionsHtml = field.options.map(option => `<option value="${option}">${option}</option>`).join('');
                 formHTML += `
                     <tr>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${field.name}</td>
-                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><input type="${field.type === 'number' ? 'number' : 'text'}" id="input-${field.nameId}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);"></td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><select id="input-${field.nameId}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);">${optionsHtml}</select></td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.unit || ''}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.ref}</td>
+                    </tr>
+                `;
+            } else { // type: 'number' or 'text'
+                formHTML += `
+                    <tr>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${field.name}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><input type="${field.type}" id="input-${field.nameId}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);"></td>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.unit || ''}</td>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.ref}</td>
                     </tr>
@@ -1161,7 +1186,6 @@
         formHTML += `
                 </tbody>
             </table>
-            <button class="btn-primary" onclick="addAnalysis('${type}')">Registrar Análisis</button>
         `;
         
         document.getElementById('analysisFormContainer').innerHTML = formHTML;
@@ -1264,6 +1288,8 @@
         const analysisList = patientDoc.data().analysis;
         const analysisHistoryDiv = document.getElementById('analysisHistory');
         
+        document.getElementById('analysisFormWrapper').style.display = 'none';
+        
         if (!analysisList || analysisList.length === 0) {
             analysisHistoryDiv.innerHTML = "<p style='text-align:center;'>No hay análisis registrados.</p>";
             return;
@@ -1272,7 +1298,7 @@
         analysisHistoryDiv.innerHTML = analysisList.map((a, i) => {
             const title = analysisTypes[a.type]?.title || 'Análisis Desconocido';
             let interpretationHTML = '';
-            if (a.interpretation && a.interpretation.issues) {
+            if (a.interpretation && a.interpretation.issues && a.interpretation.issues.length > 0) {
                 interpretationHTML = `
                     <div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 8px; margin-top: 10px;">
                         <strong><i class="fa-solid fa-triangle-exclamation"></i> ${a.interpretation.title}</strong>
@@ -1335,12 +1361,23 @@
         analysisData.fields.forEach(field => {
             if (field.type === 'header') {
                 content += `<tr><td colspan="4" style="font-weight:bold; padding: 15px 10px 5px; font-size: 1.1em;">${field.name}</td></tr>`;
+            } else if (field.type === 'select') {
+                const currentValue = analysis.results.find(r => r.name === field.name)?.value || '';
+                const optionsHtml = field.options.map(option => `<option value="${option}" ${currentValue === option ? 'selected' : ''}>${option}</option>`).join('');
+                 content += `
+                    <tr>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${field.name}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><select id="edit-input-${field.nameId}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);">${optionsHtml}</select></td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.unit || ''}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.ref}</td>
+                    </tr>
+                `;
             } else {
                 const currentValue = analysis.results.find(r => r.name === field.name)?.value || '';
                 content += `
                     <tr>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${field.name}</td>
-                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><input type="${field.type === 'number' ? 'number' : 'text'}" id="edit-input-${field.nameId}" value="${currentValue}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);"></td>
+                        <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><input type="${field.type}" id="edit-input-${field.nameId}" value="${currentValue}" style="width:100%; padding:5px; border-radius:5px; border:1px solid var(--text-muted-color);"></td>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.unit || ''}</td>
                         <td style="padding: 10px; border-bottom: 1px solid var(--border-color); font-size:0.9em; color: var(--text-muted-color);">${field.ref}</td>
                     </tr>
