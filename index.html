@@ -99,26 +99,36 @@
       border-bottom: 1px solid var(--border-color);
       color: var(--primary-color);
       display: flex;
-      flex-direction: column; /* Cambiado a columna para el nuevo elemento */
+      flex-direction: row; /* Vuelve a fila para el nuevo diseño */
       align-items: center;
-      justify-content: center;
+      justify-content: space-between; /* Distribuye los elementos */
       position: relative;
       z-index: 10;
     }
-    header .title { flex-grow: 1; text-align: center; margin-left: -24px; }
+    header .title { flex-grow: 1; text-align: center; margin: 0; }
     header .header-controls {
-      width: 100%;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      gap: 10px; /* Espacio entre los controles */
     }
     header .theme-toggle { font-size: 0.8em; cursor: pointer; padding: 8px; }
     header .header-btn { width: 40px; text-align: center; font-size: 1.1em; color: var(--text-color); cursor: pointer;}
+    
+    header .vital-track-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     header .patient-name-display {
-      font-size: 1.2em; /* Tamaño de fuente para el nombre */
+      font-size: 0.8em; /* Tamaño de fuente más pequeño para el nombre */
       font-weight: 500;
-      color: var(--text-color);
-      margin-top: 10px; /* Separación del título */
+      color: var(--text-muted-color);
+      margin-left: 10px; /* Separación del título */
+      white-space: nowrap; /* Asegura que el nombre esté en una sola línea */
+      overflow: hidden;
+      text-overflow: ellipsis; /* Añade puntos suspensivos si se desborda */
+      max-width: 100px;
       display: none; /* Oculto por defecto */
     }
 
@@ -325,12 +335,12 @@
 <body>
   <div class="app">
     <header>
-      <div class="header-controls">
-        <div id="headerLeft" class="header-btn"></div>
+      <div id="headerLeft" class="header-btn"></div>
+      <div class="vital-track-title">
         <div class="title"><i class="fa-solid fa-heart-pulse"></i> VitalTrack</div>
-        <div class="theme-toggle header-btn" onclick="toggleTheme()"><i class="fa-solid fa-moon"></i></div>
+        <div id="patientNameDisplay" class="patient-name-display"></div>
       </div>
-      <div id="patientNameDisplay" class="patient-name-display"></div>
+      <div class="theme-toggle header-btn" onclick="toggleTheme()"><i class="fa-solid fa-moon"></i></div>
     </header>
 
     <div id="homeScreen" class="screen active">
@@ -511,7 +521,6 @@
         document.getElementById('patientNameDisplay').style.display = 'block';
 
         document.getElementById('headerLeft').innerHTML = `<i class="fa-solid fa-arrow-left" onclick="backHome()"></i>`;
-        document.querySelector('header .title').style.display = 'none'; // Ocultar el título
         await updateDashboard();
         switchPatientView('records');
     }
@@ -523,7 +532,6 @@
         
         document.getElementById('headerLeft').innerHTML = '';
         document.getElementById('patientNameDisplay').style.display = 'none';
-        document.querySelector('header .title').style.display = 'block'; // Mostrar el título
         renderPatients();
     }
 
