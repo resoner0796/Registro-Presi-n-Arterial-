@@ -1402,8 +1402,10 @@
                     let value;
                     if (field.type === 'number') {
                         value = input.value.trim();
+                        // Almacenar el valor como nulo si el campo está vacío
+                        value = value === '' ? null : parseFloat(value);
                     } else { // 'select'
-                        value = input.value.trim();
+                        value = input.value;
                     }
                     newAnalysis.results.push({
                         name: field.name,
@@ -1567,8 +1569,9 @@
                     let value;
                     if (field.type === 'number') {
                         value = input.value.trim();
+                        value = value === '' ? null : parseFloat(value);
                     } else { // 'select'
-                        value = input.value.trim();
+                        value = input.value;
                     }
                     analysisToUpdate.results.push({
                         name: field.name,
