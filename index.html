@@ -351,6 +351,7 @@
     .modal-content {
       background: var(--card-bg-color); padding: 20px; border-radius: 12px;
       width: 90%; max-width: 400px; max-height: 90%; overflow-y: auto;
+      animation: fadeIn 0.2s ease-in-out;
     }
   </style>
 </head>
@@ -442,6 +443,27 @@
     </div>
   </div>
   
+  <div id="alertModal" class="modal">
+    <div class="modal-content">
+        <h3 id="alertModalTitle">Notificación</h3>
+        <p id="alertModalMessage" style="margin-top: 15px;"></p>
+        <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+            <button class="btn-primary" onclick="closeModal('alertModal')">Aceptar</button>
+        </div>
+    </div>
+  </div>
+
+  <div id="confirmModal" class="modal">
+    <div class="modal-content">
+        <h3 id="confirmModalTitle">Confirmación</h3>
+        <p id="confirmModalMessage" style="margin-top: 15px;"></p>
+        <div style="display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end;">
+            <button class="btn-secondary" id="confirmModalCancel">Cancelar</button>
+            <button class="btn-danger" id="confirmModalConfirm">Confirmar</button>
+        </div>
+    </div>
+  </div>
+
   <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-firestore-compat.js"></script>
   <script>
@@ -469,7 +491,7 @@
     let currentRecordEditIndex = null;
     let currentMedEditIndex = null;
     let currentTakenEdit = {};
-    let currentAnalysisEditIndex = null; // Nuevo índice para la edición de análisis
+    let currentAnalysisEditIndex = null; 
     let charts = {};
     
     // --- LÓGICA DEL TEMA (MODO OSCURO/CLARO) ---
@@ -525,10 +547,12 @@
 
     async function deletePatient(id) {
         const patient = patients.find(p => p.id === id);
-        if (confirm(`¿Seguro que quieres eliminar a ${patient.name} y todos sus registros?`)) {
-            await db.collection("patients").doc(id).delete();
-            renderPatients();
-        }
+        showConfirm(`¿Seguro que quieres eliminar a ${patient.name} y todos sus registros?`, async (confirmed) => {
+            if (confirmed) {
+                await db.collection("patients").doc(id).delete();
+                renderPatients();
+            }
+        }, 'Eliminar Paciente');
     }
 
     async function openPatient(id) {
@@ -536,7 +560,6 @@
         document.getElementById("homeScreen").classList.remove("active");
         document.getElementById("patientScreen").classList.add("active");
         
-        // Obtener el nombre del paciente y mostrarlo
         const patientDoc = await db.collection("patients").doc(id).get();
         const patientName = patientDoc.data().name;
         document.getElementById('patientNameDisplay').innerText = patientName;
@@ -836,15 +859,15 @@
         
         if (type === 'bp') {
             const sys = parseInt(document.getElementById('sys').value), dia = parseInt(document.getElementById('dia').value), hr = parseInt(document.getElementById('hr').value);
-            if (!sys || !dia || !hr) return alert("Completa todos los campos de presión.");
+            if (!sys || !dia || !hr) return showAlert("Completa todos los campos de presión.", "Campo Requerido");
             Object.assign(newRecord, { sys, dia, hr });
         } else if (type === 'weight') {
             const value = parseFloat(document.getElementById('weight').value);
-            if (!value) return alert("Ingresa un valor de peso.");
+            if (!value) return showAlert("Ingresa un valor de peso.", "Campo Requerido");
             Object.assign(newRecord, { value, unit: 'kg' });
         } else if (type === 'glucose') {
             const value = parseInt(document.getElementById('glucose').value);
-            if (!value) return alert("Ingresa un valor de glucosa.");
+            if (!value) return showAlert("Ingresa un valor de glucosa.", "Campo Requerido");
             Object.assign(newRecord, { value, unit: 'mg/dL' });
         }
 
@@ -854,13 +877,15 @@
     }
     
     async function deleteRecord(index) {
-        if(confirm('¿Seguro que quieres eliminar este registro?')) {
-            const patientDoc = await db.collection("patients").doc(currentPatientId).get();
-            const patient = patientDoc.data();
-            patient.records.splice(index, 1);
-            await db.collection("patients").doc(currentPatientId).update({ records: patient.records });
-            updateDashboard(); renderHistory();
-        }
+        showConfirm('¿Seguro que quieres eliminar este registro?', async (confirmed) => {
+            if (confirmed) {
+                const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+                const patient = patientDoc.data();
+                patient.records.splice(index, 1);
+                await db.collection("patients").doc(currentPatientId).update({ records: patient.records });
+                updateDashboard(); renderHistory();
+            }
+        }, 'Eliminar Registro');
     }
 
     async function openEditModal(index) {
@@ -971,7 +996,7 @@
         const dose = document.getElementById('medDose').value.trim();
         const frequency = document.getElementById('medFrequency').value.trim();
         
-        if(!name || !dose) return alert("Por favor, complete al menos el nombre y la dosis del medicamento.");
+        if(!name || !dose) return showAlert("Por favor, complete al menos el nombre y la dosis del medicamento.", "Campos Requeridos");
         
         const patientDoc = await db.collection("patients").doc(currentPatientId).get();
         const patient = patientDoc.data();
@@ -992,13 +1017,15 @@
     }
 
     async function deleteMed(index) { 
-        if(confirm('¿Seguro que quieres eliminar este medicamento?')) {
-            const patientDoc = await db.collection("patients").doc(currentPatientId).get();
-            const patient = patientDoc.data();
-            patient.medications.splice(index, 1); 
-            await db.collection("patients").doc(currentPatientId).update({ medications: patient.medications });
-            renderMeds();
-        }
+        showConfirm('¿Seguro que quieres eliminar este medicamento?', async (confirmed) => {
+            if (confirmed) {
+                const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+                const patient = patientDoc.data();
+                patient.medications.splice(index, 1); 
+                await db.collection("patients").doc(currentPatientId).update({ medications: patient.medications });
+                renderMeds();
+            }
+        }, 'Eliminar Medicamento');
     }
 
     async function openEditMedModal(index) {
@@ -1034,7 +1061,7 @@
 
         await db.collection("patients").doc(currentPatientId).update({ medications: patient.medications });
         renderMeds();
-        alert('Toma registrada.');
+        showAlert('Toma registrada con éxito.');
     }
     
     async function openEditTakenModal(medIndex, takenIndex) {
@@ -1060,7 +1087,7 @@
         const newDate = document.getElementById('editTakenDate').value;
         const newTime = document.getElementById('editTakenTime').value;
 
-        if(!newDate || !newTime) return alert("Por favor, complete ambos campos.");
+        if(!newDate || !newTime) return showAlert("Por favor, complete la fecha y la hora.", "Campos Requeridos");
         
         const [year, month, day] = newDate.split('-');
         const newTakenDate = `${day}/${month}/${year}, ${newTime}`;
@@ -1072,13 +1099,15 @@
     }
 
     async function deleteTaken(medIndex, takenIndex) {
-        if(confirm('¿Seguro que quieres eliminar esta toma?')) {
-            const patientDoc = await db.collection("patients").doc(currentPatientId).get();
-            const patient = patientDoc.data();
-            patient.medications[medIndex].takenDates.splice(takenIndex, 1);
-            await db.collection("patients").doc(currentPatientId).update({ medications: patient.medications });
-            renderMeds();
-        }
+        showConfirm('¿Seguro que quieres eliminar esta toma del historial?', async (confirmed) => {
+            if(confirmed) {
+                const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+                const patient = patientDoc.data();
+                patient.medications[medIndex].takenDates.splice(takenIndex, 1);
+                await db.collection("patients").doc(currentPatientId).update({ medications: patient.medications });
+                renderMeds();
+            }
+        }, 'Eliminar Toma');
     }
     
     async function renderSettings() {
@@ -1091,7 +1120,8 @@
     async function setWeightGoal() {
         const weightGoal = parseFloat(document.getElementById('weightGoalInput').value) || null;
         await db.collection("patients").doc(currentPatientId).update({ weightGoal });
-        updateDashboard(); alert('Meta guardada.');
+        updateDashboard(); 
+        showAlert('Meta de peso guardada correctamente.');
     }
     async function saveReminderSettings() {
         const enabled = document.getElementById('reminderEnabled').checked;
@@ -1100,12 +1130,12 @@
         if (enabled && Notification.permission !== 'granted') {
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') {
-                alert('Permisos de notificación denegados.');
+                showAlert('Permisos de notificación denegados. No se pueden activar los recordatorios.', 'Error de Permisos');
                 document.getElementById('reminderEnabled').checked = false; return;
             }
         }
         await db.collection("patients").doc(currentPatientId).update({ reminders: { enabled, time } });
-        alert('Ajustes de recordatorio guardados.');
+        showAlert('Ajustes de recordatorio guardados.');
     }
 
     // --- LÓGICA DE ANÁLISIS ---
@@ -1426,7 +1456,7 @@
         
         renderAnalysisHistory();
         showAnalysisForm(type);
-        alert('Análisis registrado con éxito.');
+        showAlert('Análisis registrado con éxito.');
     }
     
     async function renderAnalysisHistory() {
@@ -1589,17 +1619,19 @@
         await db.collection("patients").doc(currentPatientId).update({ analysis: patient.analysis });
         closeModal('editAnalysisModal');
         renderAnalysisHistory();
-        alert('Análisis actualizado con éxito.');
+        showAlert('Análisis actualizado con éxito.');
     }
     
     async function deleteAnalysis(index) {
-        if(confirm('¿Seguro que quieres eliminar este análisis?')) {
-            const patientDoc = await db.collection("patients").doc(currentPatientId).get();
-            const patient = patientDoc.data();
-            patient.analysis.splice(index, 1);
-            await db.collection("patients").doc(currentPatientId).update({ analysis: patient.analysis });
-            renderAnalysisHistory();
-        }
+        showConfirm('¿Seguro que quieres eliminar este análisis?', async (confirmed) => {
+            if(confirmed) {
+                const patientDoc = await db.collection("patients").doc(currentPatientId).get();
+                const patient = patientDoc.data();
+                patient.analysis.splice(index, 1);
+                await db.collection("patients").doc(currentPatientId).update({ analysis: patient.analysis });
+                renderAnalysisHistory();
+            }
+        }, 'Eliminar Análisis');
     }
 
     async function exportAnalysisToPDF(index) {
@@ -1629,12 +1661,45 @@
         doc.autoTable(tableColumn, tableRows, { startY: 55 });
 
         doc.save(`${patientName}_${analysisTitle.replace(/\s/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
-        alert('Generando PDF...');
+        showAlert('Generando PDF...');
     }
     
     // --- MODAL Y NOTIFICACIONES ---
     function openModal(id) { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    // Nueva función para mostrar alertas personalizadas
+    function showAlert(message, title = 'Notificación') {
+        document.getElementById('alertModalTitle').innerText = title;
+        document.getElementById('alertModalMessage').innerText = message;
+        openModal('alertModal');
+    }
+
+    // Nueva función para mostrar confirmaciones personalizadas
+    function showConfirm(message, callback, title = 'Confirmación') {
+        document.getElementById('confirmModalTitle').innerText = title;
+        document.getElementById('confirmModalMessage').innerText = message;
+
+        const confirmBtn = document.getElementById('confirmModalConfirm');
+        const cancelBtn = document.getElementById('confirmModalCancel');
+
+        // Clona y reemplaza los botones para remover event listeners previos
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        newConfirmBtn.onclick = () => {
+            closeModal('confirmModal');
+            callback(true);
+        };
+
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+        newCancelBtn.onclick = () => {
+            closeModal('confirmModal');
+            callback(false);
+        };
+        
+        openModal('confirmModal');
+    }
 
     async function checkMedicationReminders() {
         if (Notification.permission !== 'granted') return;
